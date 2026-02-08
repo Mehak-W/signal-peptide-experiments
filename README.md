@@ -26,6 +26,7 @@ Systematic evaluation of machine learning models for predicting signal peptide s
 | 8 | Bootstrap CIs | 10,000-resample 95% CIs for all 16 models |
 | 9 | Vector architecture search | Full-data training with 3- and 4-layer architectures |
 | 10 | Vector ensemble optimization | Dropout tuning, 20-seed ensembles, mixed-architecture ensembles |
+| 11 | Dropout validation | Validates dropout selection via 80/20 train/val split (independent of test set) |
 
 ## Directory Structure
 
@@ -46,7 +47,8 @@ signal_peptide_study/
 │   ├── 07_design_task_evaluation.py         Design variant mutation prediction
 │   ├── 08_bootstrap_ci.py                   Bootstrap confidence intervals
 │   ├── 09_vector_architecture_search.py     Full-data architecture search
-│   └── 10_vector_ensemble_optimization.py   Dropout + ensemble optimization
+│   ├── 10_vector_ensemble_optimization.py   Dropout + ensemble optimization
+│   └── 11_dropout_validation.py             Validates dropout selection on held-out data
 ├── results/           JSON + CSV outputs
 ├── figures/           PNG plots (300 DPI)
 ├── paper/             LaTeX manuscript
@@ -91,6 +93,9 @@ python3 -u scripts/09_vector_architecture_search.py
 
 # Step 10: Vector ensemble optimization, dropout + ensemble tuning (~5 hrs)
 python3 -u scripts/10_vector_ensemble_optimization.py
+
+# Step 11: Dropout validation, 80/20 split confirmation (~30 min)
+python3 -u scripts/11_dropout_validation.py
 ```
 
 All scripts save results to `results/` (JSON + CSV) and figures to `figures/` (PNG, 300 DPI). A Jupyter notebook (`run_all.ipynb`) is also provided for running all scripts sequentially with explanatory markdown cells.
