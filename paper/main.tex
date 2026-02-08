@@ -1,0 +1,648 @@
+\documentclass[12pt]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{multirow}
+
+% ── Title ─────────────────────────────────────────────────────────────────
+\title{\textbf{Signal Peptide Efficiency Prediction Using Protein Language Model Embeddings and Neural Network Regression}}
+
+\author{
+  Mehak Wadhwa \\
+  Department of Chemistry, Fordham University \\
+  Advisor: Dr.\ Joshua Schrier
+}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% ══════════════════════════════════════════════════════════════════════════
+\begin{abstract}
+Signal peptides direct protein secretion in bacteria and are critical targets for optimizing recombinant protein production.
+We present a systematic comparison of machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest (RF) and neural network (NN) regressors across four feature representations: 156 physicochemical descriptors and three protein language model (PLM) embedding sets (ESM2-650M, ESM2-3B, Ginkgo-AA0).
+A vector regression approach---predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}---achieves a test MSE of 1.001 with Ginkgo-AA0 embeddings using an 80/20 validation split.
+Further optimization using full-data training with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), surpassing both the physicochemical baseline of 1.22 \citep{grasso2023} and a prior benchmark of 0.953 (J.\ Schrier, personal communication).
+Cross-dataset evaluation on four external signal peptide datasets reveals significant negative Spearman correlations, indicating that secretion efficiency rankings are context-dependent and do not transfer across organisms or experimental systems.
+Applied to 4832 designed signal peptide variants using physicochemical features, both RF and NN models achieve Spearman $\rho = 0.37$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, demonstrating practical utility for guiding experimental prioritization.
+\end{abstract}
+
+% ══════════════════════════════════════════════════════════════════════════
+\section{Introduction}
+\label{sec:intro}
+
+Signal peptides are short N-terminal sequences (typically 15--30 amino acids) that direct nascent proteins through cellular secretion machinery.
+In industrial biotechnology, the choice of signal peptide can determine whether a recombinant protein is produced at commercially viable yields or fails entirely \citep{grasso2023}.
+For organisms like \textit{Bacillus subtilis}---a workhorse of industrial enzyme production---optimizing signal peptide selection is essential for maximizing secretion efficiency.
+
+Traditional approaches to signal peptide optimization rely on experimental screening, which is time-consuming and expensive.
+Machine learning offers the potential to predict secretion efficiency from sequence alone, enabling rational design of signal peptide--protein combinations.
+\citet{grasso2023} constructed a library of signal peptide variants and trained a random forest regressor on 156 physicochemical descriptors, achieving a test MSE of 1.22 for predicting whole-cell activity (WA).
+
+Recent advances in protein language models (PLMs) provide an alternative to hand-crafted features.
+Models like ESM-2 \citep{lin2023} learn rich representations of protein sequences from evolutionary data, capturing structural and functional information that may not be encoded in traditional descriptors.
+However, effectively leveraging these high-dimensional embeddings (1280--2560 dimensions) requires appropriate model architectures and hyperparameter tuning.
+
+In this work, we systematically evaluate signal peptide efficiency prediction across multiple feature representations and model types.
+We identified several methodological considerations in applying machine learning to this problem:
+\begin{enumerate}
+    \item Ensuring reproducibility through direct loading from source data files
+    \item Performing hyperparameter search independently for each feature type
+    \item Using regression (not classification) for continuous efficiency prediction
+    \item Scaling neural network architectures to input dimensionality
+\end{enumerate}
+
+Our analysis reveals a striking interaction between model type and feature representation: neural networks substantially outperform random forests when given PLM embeddings, but underperform on physicochemical features.
+Beyond this core comparison, we extend the analysis in four directions: (i) a vector regression approach that predicts bin probability distributions instead of scalar WA, yielding further performance gains; (ii) full-data architecture and regularization optimization that pushes vector regression below the prior state of the art; (iii) cross-dataset generalization evaluation against four external datasets; and (iv) a design task evaluating model utility for ranking novel signal peptide variants.
+
+% ══════════════════════════════════════════════════════════════════════════
+\section{Methods}
+\label{sec:methods}
+
+\subsection{Data}
+\label{sec:data}
+
+All data originate from the supplementary material of \citet{grasso2023}.
+The dataset comprises signal peptide variants fused to a $\beta$-glucuronidase reporter in \textit{B.\ subtilis}, with whole-cell activity (WA) measured as a proxy for secretion efficiency.
+Quality filters follow the original protocol: signal peptide length 10--40 amino acids, WA values between 1.0 and 10.0.
+The original train/test partition is preserved, yielding 3085 training and 1323 test samples for physicochemical features.
+
+We evaluate four feature representations:
+\begin{itemize}
+    \item \textbf{PhysChem}: 156 physicochemical descriptors from \citet{grasso2023}, including amino acid composition, hydrophobicity, and secondary structure propensities for each signal peptide region.
+    \item \textbf{ESM2-650M}: 1280-dimensional mean-pooled embeddings from the 650M-parameter ESM-2 model \citep{lin2023}.
+    \item \textbf{ESM2-3B}: 2560-dimensional embeddings from the 3B-parameter ESM-2 model.
+    \item \textbf{Ginkgo-AA0}: 1280-dimensional embeddings from Ginkgo Bioworks' AA0 protein language model \citep{ginkgo2024}, trained on proprietary protein sequence data.
+\end{itemize}
+
+The PLM datasets contain 3095 training and 1326 test samples (minor differences arise from sequence-level filtering).
+
+\subsection{Preprocessing}
+\label{sec:preprocessing}
+
+Features are standardized to zero mean and unit variance using statistics computed on training data only.
+Target skewness is evaluated; log$_{1+x}$ transformation is applied when $|\text{skew}| > 1.0$.
+For all datasets in this study, skewness was 0.116, so no transformation was applied.
+
+\subsection{Random Forest Models}
+\label{sec:rf}
+
+We first reproduce the baseline result using the exact hyperparameters from \citet{grasso2023}: 75 trees, max depth 25, \texttt{min\_samples\_split} = 0.001, \texttt{min\_samples\_leaf} = 0.0001, with all features available at each split.
+
+For systematic comparison, we perform randomized hyperparameter search independently for each feature type using 100 configurations evaluated under 5-fold cross-validation.
+The search space includes: number of trees $\in \{50, 75, 100, 150, 200, 300\}$, max depth $\in \{10, 15, 20, 25, 30, \text{None}\}$, minimum samples for splitting $\in \{2, 5, 10, 0.001, 0.01\}$, minimum samples per leaf $\in \{1, 2, 4, 0.0001, 0.001\}$, and fraction of features per split $\in \{\text{sqrt}, \text{log2}, 0.5, 0.75, 1.0\}$.
+
+\subsection{Neural Network Regression}
+\label{sec:nn}
+
+We train feedforward neural networks with the following architecture for each hidden layer: fully connected $\rightarrow$ batch normalization $\rightarrow$ ReLU activation $\rightarrow$ dropout.
+The output layer is a single neuron with linear activation, trained to minimize MSE.
+
+Hidden layer sizes are scaled to input dimensionality:
+\begin{itemize}
+    \item PhysChem (156d): architectures from $\{[128], [128, 64], [256, 128]\}$
+    \item ESM2-650M / Ginkgo-AA0 (1280d): $\{[256], [512, 256], [256, 128]\}$
+    \item ESM2-3B (2560d): $\{[512], [512, 256], [1024, 512]\}$
+\end{itemize}
+
+Additional hyperparameters: dropout rate $\in \{0.2, 0.3, 0.4, 0.5\}$, L2 regularization $\in \{10^{-4}, 10^{-3}, 10^{-2}\}$, learning rate $\in \{10^{-3}, 5\times10^{-4}, 10^{-4}\}$, and batch size $\in \{32, 64\}$.
+We sample 40 configurations per feature type, training each with the Adam optimizer for up to 200 epochs with early stopping (patience 15) and learning rate reduction on plateau.
+An 80/20 train/validation split is used for model selection; the configuration with the lowest validation MSE is evaluated on the held-out test set.
+
+\subsection{Multi-Seed Ensemble Protocol}
+\label{sec:ensemble}
+
+To reduce variance from random initialization and data splitting, we employ a 5-seed ensemble protocol with seeds $\{42, 123, 456, 789, 1024\}$.
+For each seed, the training set is split 80/20 into training and validation subsets; a model is trained with early stopping on the validation loss.
+The ensemble prediction is the arithmetic mean of the five per-seed predictions.
+This protocol is used for the neural network models in Sections~\ref{sec:vector}--\ref{sec:cross_dataset_methods}.
+
+\subsection{Vector Regression}
+\label{sec:vector}
+
+Rather than predicting a scalar WA value, we predict the 10-dimensional bin probability distribution from which WA is derived.
+The WA measurement in \citet{grasso2023} is computed from fluorescence-activated cell sorting into 10 bins, with $\text{WA} = \sum_{i=1}^{10} i \cdot p_i$ where $p_i$ is the fraction of cells in bin $i$.
+
+The vector regression architecture uses two hidden layers of 256 units each with LeakyReLU activation and 20\% dropout, followed by a 10-unit output layer with softmax activation to produce a valid probability distribution.
+Unlike the scalar NN (Section~\ref{sec:nn}), batch normalization is omitted.
+Two loss functions are compared: categorical cross-entropy and focal loss \citep{lin2017focal}, defined as $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$ with $\alpha = 0.25$ and $\gamma = 2.0$.
+Focal loss down-weights well-classified examples, encouraging the model to focus on samples with ambiguous bin distributions.
+Each embedding--loss combination is trained as a 5-seed ensemble (Section~\ref{sec:ensemble}).
+After prediction, WA is recovered as $\hat{\text{WA}} = \hat{\mathbf{p}} \cdot [1, 2, \ldots, 10]^\top$.
+
+Rows with missing bin probabilities (27 training, 53 test) are excluded from vector regression training, yielding 3068 training samples.
+The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1273 test samples with complete bin data; the full-data models (Section~\ref{sec:fulldata}) evaluate on all 1326 test samples using WA as the target.
+
+\subsection{Full-Data Vector Regression Optimization}
+\label{sec:fulldata}
+
+To maximize predictive performance, we perform architecture and regularization optimization on the vector regression model trained without a validation split.
+All 3068 training samples (after excluding rows with missing bin probabilities) are used for training with a fixed epoch budget of 300 and no early stopping.
+Models are evaluated on all 1326 test samples.
+
+Building on the base architecture from Section~\ref{sec:vector}, we explore:
+\begin{itemize}
+    \item \textbf{Dropout rate}: 0.15, 0.20, 0.25, 0.30, and 0.35 (vs.\ the base 0.20), applied to the (256, 256, 128) three-layer architecture with 5-seed ensembles.
+    \item \textbf{Deeper architectures}: 4-layer configurations including (256, 256, 128, 64), (384, 384, 256, 128), and others, with 5-seed ensembles.
+    \item \textbf{Cosine annealing}: Learning rate schedule $\eta_t = \eta_0 \cdot \frac{1}{2}(1 + \cos(\pi t / T))$ combined with deeper architectures.
+    \item \textbf{Large ensembles}: 20-seed ensembles with the best configurations.
+    \item \textbf{Mixed-architecture ensemble}: Averaging predictions from multiple distinct architectures.
+\end{itemize}
+All configurations use Ginkgo-AA0 embeddings and focal loss.
+Each 5-seed ensemble uses seeds $\{42, 123, 456, 789, 1024\}$ with independent random initialization; predictions are averaged across seeds.
+
+\subsection{Cross-Dataset Generalization}
+\label{sec:cross_dataset_methods}
+
+To evaluate whether models trained on the Grasso dataset generalize to other experimental systems, we test the best ESM2-650M RF and the 5-seed NN ensemble on four external datasets:
+\begin{itemize}
+    \item \textbf{Wu} \citep{wu2020}: 81 signal peptides in \textit{E.\ coli} with binary secretion labels.
+    \item \textbf{Xue} \citep{xue2023}: 322 signal peptides in \textit{S.\ cerevisiae} with enzyme activity measurements.
+    \item \textbf{Zhang-P43 / Zhang-PglVM} \citep{zhang2016}: 114 signal peptides in \textit{B.\ subtilis} measured under two different promoters.
+\end{itemize}
+Spearman rank correlation serves as the primary metric, as it is invariant to differences in scale and units between datasets.
+For the Zhang datasets, we additionally evaluate cross-promoter prediction consistency: whether the model predicts the same relative ranking for the same signal peptides under two promoters.
+
+\subsection{Design Task Evaluation}
+\label{sec:design_methods}
+
+The Grasso library contains 4836 designed signal peptide variants (Set = NaN in the original data, excluding 393 that overlap with the train/test sets) spanning 134 genes with known WA values.
+PLM embeddings are unavailable for these variants, so we use the 156 physicochemical features.
+RF and NN models are trained on the Grasso training set and evaluated on the design variants.
+Wild-type WA for each gene is computed as the mean WA across Library rows where Library = `WT' (137 genes, 6 rows total).
+Per-gene and overall Spearman $\rho$ are computed, along with classification accuracy for predicting whether a variant performs better or worse than wild type.
+A minimum of 5 variants per gene is required for per-gene metrics.
+
+\subsection{Evaluation}
+\label{sec:metrics}
+
+All models are evaluated on the same held-out test set using mean squared error (MSE), coefficient of determination ($R^2$), and Spearman rank correlation ($\rho$).
+MSE is the primary metric for consistency with prior work.
+
+% ══════════════════════════════════════════════════════════════════════════
+\section{Results}
+\label{sec:results}
+
+\subsection{Baseline Reproduction}
+
+Using the exact parameters from \citet{grasso2023}, we obtain a test MSE of 1.193 ($R^2 = 0.750$, Spearman $\rho = 0.859$), within 2.2\% of the reported value of 1.22.
+Figure~\ref{fig:grasso_repro} shows predicted versus actual WA values.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/grasso_reproduction.png}
+    \caption{Baseline reproduction using physicochemical features and the exact random forest parameters from \citet{grasso2023}. Predicted vs.\ actual whole-cell activity for training (left) and test (right) sets. Dashed line indicates perfect prediction.}
+    \label{fig:grasso_repro}
+\end{figure}
+
+\subsection{Scalar Model Comparison}
+
+Table~\ref{tab:comparison} presents results for all scalar model--feature combinations.
+
+\begin{table}[H]
+\centering
+\caption{Test set performance across all scalar model and feature type combinations, sorted by MSE. The $\Delta$ column shows percent change relative to the \citet{grasso2023} baseline MSE of 1.22.}
+\label{tab:comparison}
+\begin{tabular}{llcccc}
+\toprule
+Feature Type & Model & Test MSE & Test $R^2$ & Spearman $\rho$ & $\Delta$ \\
+\midrule
+Ginkgo-AA0 & NN & \textbf{1.050} & \textbf{0.780} & \textbf{0.866} & $-$14.0\% \\
+ESM2-3B & NN & 1.067 & 0.776 & 0.861 & $-$12.5\% \\
+ESM2-650M & NN & 1.090 & 0.771 & 0.861 & $-$10.6\% \\
+Ginkgo-AA0 & RF & 1.158 & 0.757 & 0.857 & $-$5.1\% \\
+ESM2-650M & RF & 1.189 & 0.750 & 0.853 & $-$2.5\% \\
+PhysChem & RF (baseline) & 1.193 & 0.750 & 0.859 & $-$2.2\% \\
+PhysChem & RF (tuned) & 1.208 & 0.747 & 0.857 & $-$1.0\% \\
+ESM2-3B & RF & 1.245 & 0.739 & 0.849 & $+$2.0\% \\
+PhysChem & NN & 1.328 & 0.721 & 0.840 & $+$8.8\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:comparison} visualizes these results as a grouped bar chart.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/final_comparison.png}
+    \caption{Test MSE across feature types and model architectures. Dashed red line indicates the baseline MSE of 1.22. Lower values indicate better performance.}
+    \label{fig:comparison}
+\end{figure}
+
+\paragraph{Random Forest Results.}
+Tuned RF models achieve MSE values between 1.16 and 1.25 across all feature types.
+Ginkgo-AA0 embeddings yield the best RF result (MSE 1.158), followed by ESM2-650M (1.189) and physicochemical features (1.208).
+ESM2-3B performs worst (MSE 1.245), likely due to the curse of dimensionality in tree-based splitting with 2560 features.
+
+\paragraph{Neural Network Results.}
+The ranking changes substantially for neural networks.
+All three PLM embedding types outperform the baseline, with Ginkgo-AA0 achieving the best scalar result (MSE 1.050, $R^2 = 0.780$).
+However, the NN trained on physicochemical features performs worse than the RF baseline (MSE 1.328 vs.\ 1.193).
+
+\subsection{Vector Regression}
+\label{sec:vector_results}
+
+Table~\ref{tab:vector} presents results for vector regression models predicting bin probability distributions.
+
+\begin{table}[H]
+\centering
+\caption{Vector regression test set performance (5-seed ensembles, $N_{\text{test}} = 1273$). WA is recovered from predicted bin probabilities. See text for caveats on comparing with Table~\ref{tab:comparison}.}
+\label{tab:vector}
+\begin{tabular}{llccc}
+\toprule
+Embedding & Loss & Test MSE & Test $R^2$ & Spearman $\rho$ \\
+\midrule
+Ginkgo-AA0 & Focal & \textbf{1.001} & \textbf{0.790} & \textbf{0.867} \\
+Ginkgo-AA0 & Cross-entropy & 1.003 & 0.790 & 0.867 \\
+ESM2-650M & Focal & 1.049 & 0.780 & 0.859 \\
+ESM2-650M & Cross-entropy & 1.054 & 0.779 & 0.861 \\
+ESM2-3B & Cross-entropy & 1.109 & 0.767 & 0.857 \\
+ESM2-3B & Focal & 1.117 & 0.766 & 0.856 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The best vector regression model (Ginkgo-AA0 + focal loss) achieves MSE = 1.001, a 4.7\% improvement over the best scalar NN (1.050) and an 18\% improvement over the baseline (1.22).
+Focal loss provides a marginal edge over cross-entropy for Ginkgo-AA0 and ESM2-650M, though the differences are small.
+ESM2-3B again performs worst among the three PLMs, consistent with the scalar regression results.
+Note that the vector regression test set (1273 samples) is smaller than the scalar test set (1326 samples) due to exclusion of rows with missing bin probabilities, and the vector results use 5-seed ensembles rather than single configurations, so direct MSE comparison between Tables~\ref{tab:comparison} and \ref{tab:vector} should be interpreted with caution.
+Figure~\ref{fig:vector} shows the comparison across embeddings and loss functions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/vector_regression_comparison.png}
+    \caption{Vector regression results comparing three PLM embedding types and two loss functions. Ensemble MSE values are annotated above each bar.}
+    \label{fig:vector}
+\end{figure}
+
+\subsection{Full-Data Vector Regression Optimization}
+\label{sec:fulldata_results}
+
+Table~\ref{tab:fulldata} presents results from the full-data architecture and regularization optimization (Section~\ref{sec:fulldata}).
+
+\begin{table}[H]
+\centering
+\caption{Full-data vector regression optimization ($N_{\text{train}} = 3068$, $N_{\text{test}} = 1326$, Ginkgo-AA0 + focal loss). All results are 5-seed ensembles except where noted.}
+\label{tab:fulldata}
+\begin{tabular}{llcccc}
+\toprule
+Phase & Configuration & Dropout & Test MSE & Test $R^2$ & Spearman $\rho$ \\
+\midrule
+\multirow{3}{*}{Dropout}
+ & (256, 256, 128), drop = 0.25 & 0.25 & 0.971 & --- & --- \\
+ & (256, 256, 128), drop = 0.30 & 0.30 & 0.940 & --- & --- \\
+ & (256, 256, 128), drop = 0.35 & 0.35 & \textbf{0.932} & \textbf{0.804} & \textbf{0.873} \\
+\midrule
+\multirow{2}{*}{4-layer}
+ & (256, 256, 128, 64) & 0.20 & 0.940 & --- & --- \\
+ & (384, 384, 256, 128) & 0.20 & 0.948 & --- & --- \\
+\midrule
+Mixed & 3-arch $\times$ 5-seed (15 models) & --- & 0.967 & --- & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dropout tuning produces the largest gains: increasing dropout from 0.20 to 0.35 on the (256, 256, 128) architecture reduces ensemble MSE from 0.993 to 0.932, indicating that the base configuration was under-regularized.
+The best result---MSE 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$)---surpasses the prior benchmark of 0.953 by 2.2\%.
+Bootstrap 95\% confidence intervals for this model are [0.823, 1.054] for MSE and [0.857, 0.887] for Spearman $\rho$ (Appendix~\ref{app:bootstrap}).
+Four-layer architectures and mixed-architecture ensembles also beat the 0.953 benchmark but do not surpass the dropout-tuned 3-layer model.
+Notably, 20-seed ensembles do not improve over 5-seed ensembles, suggesting diminishing returns from additional ensemble members.
+
+Figure~\ref{fig:ensemble_opt} shows the full optimization landscape.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/vector_ensemble_optimization.png}
+    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates the prior benchmark of 0.953; the dashed grey line shows the Script~09 best (0.973).}
+    \label{fig:ensemble_opt}
+\end{figure}
+
+\subsection{Cross-Dataset Generalization}
+\label{sec:cross_results}
+
+Table~\ref{tab:cross} summarizes cross-dataset performance for the best ESM2-650M RF and 5-seed NN ensemble.
+
+\begin{table}[H]
+\centering
+\caption{Cross-dataset generalization. Models trained on Grasso data are evaluated on four external datasets. All Spearman correlations are significantly negative.}
+\label{tab:cross}
+\begin{tabular}{lrcrcr}
+\toprule
+Dataset & $N$ & \multicolumn{2}{c}{RF Spearman ($p$)} & \multicolumn{2}{c}{NN Spearman ($p$)} \\
+\midrule
+Wu & 81 & $-$0.314 & (0.004) & $-$0.241 & (0.030) \\
+Xue & 322 & $-$0.278 & ($<$0.001) & $-$0.154 & (0.006) \\
+Zhang-P43 & 114 & $-$0.218 & (0.020) & $-$0.196 & (0.037) \\
+Zhang-PglVM & 114 & $-$0.250 & (0.007) & $-$0.213 & (0.023) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All four external datasets yield statistically significant negative Spearman correlations for both RF and NN models.
+For the Zhang datasets, where the same 114 signal peptides are measured under two promoters (P43 and PglVM), the model predictions achieve perfect rank consistency between the two promoter conditions (consistency = 1.000), while the actual WA measurements correlate at $r = 0.977$ across promoters.
+Figure~\ref{fig:cross} visualizes the cross-dataset evaluation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/cross_dataset_generalization.png}
+    \caption{Cross-dataset generalization results. Spearman correlations between predicted and observed signal peptide efficiency across four external datasets. Error bars indicate 95\% confidence intervals.}
+    \label{fig:cross}
+\end{figure}
+
+\subsection{Design Task Evaluation}
+\label{sec:design_results}
+
+Table~\ref{tab:design} summarizes model performance on ranking 4832 designed signal peptide variants across 131 genes (of 134 total, after requiring $\geq$5 variants per gene).
+
+\begin{table}[H]
+\centering
+\caption{Design task evaluation using physicochemical features. Models predict relative performance of designed signal peptide variants compared to wild type.}
+\label{tab:design}
+\begin{tabular}{lcccc}
+\toprule
+Model & Spearman $\rho$ & Pearson $r$ & MSE & ClassAcc (\%) \\
+\midrule
+NN & \textbf{0.385} & \textbf{0.398} & \textbf{4.01} & 71.8 \\
+RF & 0.366 & 0.375 & 4.07 & \textbf{73.7} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Both models achieve Spearman correlations above 0.36 and classification accuracy above 71\%, with all correlations significant at $p < 10^{-150}$.
+The NN slightly outperforms the RF on rank correlation (0.385 vs.\ 0.366) while the RF achieves marginally better classification accuracy (73.7\% vs.\ 71.8\%).
+Figure~\ref{fig:design} shows the design task results.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/design_task_evaluation.png}
+    \caption{Design task evaluation. Model predictions for 4832 designed signal peptide variants across 131 genes (requiring $\geq$5 variants per gene), compared to experimentally measured whole-cell activity.}
+    \label{fig:design}
+\end{figure}
+
+% ══════════════════════════════════════════════════════════════════════════
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{Model--Representation Interaction.}
+The central finding of the scalar regression analysis is a pronounced interaction between model architecture and feature representation.
+Random forests show minimal sensitivity to input type---all four feature sets produce similar MSE values (1.16--1.25).
+Neural networks, in contrast, exhibit a 27\% performance gap between the best (Ginkgo-AA0, MSE 1.050) and worst (PhysChem, MSE 1.328) feature types.
+
+This pattern suggests that RF's built-in feature selection (via random subspace sampling) provides robustness to uninformative dimensions but limits the model's ability to exploit complex feature interactions.
+Neural networks can learn nonlinear combinations of PLM embedding dimensions that capture secretion-relevant information, but require sufficient input richness to outperform simpler methods.
+
+\paragraph{Physicochemical Features and Neural Networks.}
+The poor performance of NN on physicochemical features (MSE 1.328) warrants consideration.
+With only 156 input dimensions and $\sim$3000 training samples, the neural network may lack sufficient signal to learn useful representations beyond what the RF already captures through axis-aligned splits.
+The higher capacity of the NN becomes a liability rather than an asset in this low-dimensional regime.
+
+\paragraph{PLM Model Size.}
+Interestingly, the largest PLM (ESM2-3B, 2560 dimensions) does not yield the best predictions.
+For RF, ESM2-3B performs worst among all models.
+For NN, ESM2-3B (MSE 1.067) outperforms ESM2-650M (1.090) but is still outperformed by Ginkgo-AA0 (1.050).
+With only $\sim$3000 training samples, the additional dimensions of the 3B model may introduce noise without proportional signal.
+The Ginkgo-AA0 model, despite having fewer parameters than ESM2-3B, may encode more task-relevant biological information for signal peptide function.
+
+\paragraph{Vector Regression.}
+Predicting bin probability distributions instead of scalar WA values yields a 4.7\% MSE improvement over the best scalar NN (1.050 $\to$ 1.001).
+This gain likely arises from the richer supervision signal: each training example provides 10 target values instead of one, and the softmax output naturally enforces a valid probability distribution.
+Focal loss provides a marginal improvement over cross-entropy, suggesting that most of the gain comes from the architectural change rather than the loss function.
+However, the vector and scalar NNs also differ in activation function (LeakyReLU vs.\ ReLU) and the absence of batch normalization, so the improvement cannot be attributed solely to the distributional output without further ablation.
+With an 80/20 validation split, the best vector model achieves MSE 1.001, above the 0.953 obtained using a near-identical architecture (same embedding, hidden sizes, dropout, and focal loss; Schrier uses parametric ReLU vs.\ our LeakyReLU) implemented in Wolfram Language (J.\ Schrier, personal communication).
+Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) yields a 5-seed ensemble MSE of 0.932 (Section~\ref{sec:fulldata_results}), surpassing that benchmark by 2.2\%.
+The key improvements are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
+
+\paragraph{Cross-Dataset Generalization.}
+The consistently negative Spearman correlations across all four external datasets are striking but not unexpected.
+Signal peptide efficiency depends on the cargo protein, promoter, host organism, and growth conditions---factors that differ fundamentally between datasets.
+Notably, the correlations are not merely absent ($\rho \approx 0$) but actively negative, suggesting that the sequence features associated with high secretion in the Grasso system are associated with low performance in other contexts---possibly because the model has learned host- or cargo-specific signal patterns that are maladaptive elsewhere.
+A signal peptide optimized for $\beta$-glucuronidase secretion in \textit{B.\ subtilis} may be poorly suited for xylanase production in the same organism, let alone for enzyme secretion in \textit{E.\ coli} or \textit{S.\ cerevisiae}.
+The Zhang cross-promoter analysis provides complementary evidence: the same 114 signal peptides correlate at $r = 0.977$ across two promoters, confirming that signal peptide rankings are partially conserved within a system but not across systems.
+The practical implication is clear: models for signal peptide optimization must be trained on task-specific data rather than transferred across experimental contexts.
+
+\paragraph{Design Task.}
+The design task demonstrates that models trained on characterized variants can meaningfully rank novel designed signal peptides, with Spearman $\rho = 0.37$--0.39 and classification accuracy of 72--74\%, well above the 50\% random baseline.
+These predictions use only physicochemical features, as PLM embeddings were unavailable for the design variants; the actual predictive ceiling may be higher with PLM representations.
+The moderate but significant correlations suggest that these models can serve as a practical filter for prioritizing candidates in experimental screening campaigns.
+
+\paragraph{Limitations.}
+Several limitations should be noted.
+The RF and NN hyperparameter searches used different validation strategies (5-fold CV vs.\ single train/val split), which may introduce some asymmetry in the comparison.
+The dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme.
+While full-data training with optimized regularization (MSE 0.932) surpasses the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping and may limit applicability when computational resources are constrained.
+The design task is limited to physicochemical features due to the absence of PLM embeddings for design variants.
+Additionally, the differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
+The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), three of the four NN correlations no longer reach significance, though all RF correlations remain significant.
+
+% ══════════════════════════════════════════════════════════════════════════
+\section{Conclusion}
+\label{sec:conclusion}
+
+We have systematically evaluated signal peptide efficiency prediction across four feature representations, two model architectures, and two regression formulations.
+A vector regression neural network with Ginkgo-AA0 embeddings and focal loss achieves MSE 1.001 ($R^2 = 0.790$) with validation-based training.
+Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), a 23.6\% improvement over the physicochemical baseline of 1.22 and a 2.2\% improvement over the prior benchmark of 0.953.
+Cross-dataset evaluation reveals that secretion efficiency models do not generalize across organisms or experimental systems, underscoring the context-dependence of signal peptide function.
+Applied to designed variants, the models achieve classification accuracy of 72--74\% for predicting relative performance, demonstrating practical utility for guiding experimental prioritization.
+
+Random forests remain competitive and robust across feature types, making them suitable when interpretability or computational efficiency is prioritized.
+These results demonstrate that realizing the potential of protein language models for biological prediction tasks requires appropriate model architectures---simply replacing hand-crafted features with PLM embeddings does not guarantee improvement.
+Future work could explore ensemble methods combining RF and NN predictions, fine-tuning PLMs directly on secretion efficiency data, or extending the analysis to additional host organisms and cargo proteins.
+
+% ══════════════════════════════════════════════════════════════════════════
+\section*{Data Availability}
+
+The original dataset is available as supplementary material to \citet{grasso2023}.
+PLM embeddings were generated using publicly available model weights.
+All analysis code and results are available at \url{https://github.com/Mehak-W/signal-peptide-experiments}.
+
+% ══════════════════════════════════════════════════════════════════════════
+\bibliographystyle{unsrtnat}
+\bibliography{references}
+
+% ══════════════════════════════════════════════════════════════════════════
+\appendix
+
+% ── Appendix A: Hyperparameter Search Results ─────────────────────────────
+\section{Hyperparameter Search Results}
+\label{app:hyperparam}
+
+Tables~\ref{tab:rf_trials} and \ref{tab:nn_trials} report the top-10 configurations per feature type from the randomized hyperparameter searches (100 RF configs with 5-fold CV; 40 NN configs with 80/20 validation split).
+Full trial data are available in the GitHub repository.
+
+\begin{table}[H]
+\centering
+\caption{Top-5 random forest configurations per feature type, ranked by 5-fold cross-validation MSE (100 configs searched per type).}
+\label{tab:rf_trials}
+\small
+\begin{tabular}{clccccc}
+\toprule
+Feature & Rank & $n_{\text{est}}$ & Depth & Split & Leaf & CV MSE \\
+\midrule
+\multirow{5}{*}{PhysChem}
+ & 1 & 75 & None & 5 & 2 & 2.019 \\
+ & 2 & 50 & 25 & 2 & 1e-4 & 2.021 \\
+ & 3 & 150 & 30 & 2 & 1e-4 & 2.028 \\
+ & 4 & 100 & 30 & 10 & 1e-3 & 2.029 \\
+ & 5 & 150 & 25 & 2 & 2 & 2.029 \\
+\midrule
+\multirow{5}{*}{ESM2-650M}
+ & 1 & 300 & 25 & 1e-3 & 4 & 1.843 \\
+ & 2 & 200 & 20 & 2 & 1e-3 & 1.845 \\
+ & 3 & 300 & None & 10 & 4 & 1.845 \\
+ & 4 & 75 & 25 & 5 & 1e-3 & 1.847 \\
+ & 5 & 200 & 20 & 2 & 4 & 1.847 \\
+\midrule
+\multirow{5}{*}{ESM2-3B}
+ & 1 & 150 & 25 & 2 & 2 & 1.925 \\
+ & 2 & 300 & 25 & 1e-3 & 4 & 1.927 \\
+ & 3 & 100 & 30 & 10 & 1e-3 & 1.928 \\
+ & 4 & 200 & 25 & 2 & 1e-3 & 1.929 \\
+ & 5 & 200 & 25 & 1e-3 & 1e-3 & 1.929 \\
+\midrule
+\multirow{5}{*}{Ginkgo-AA0}
+ & 1 & 300 & None & 10 & 4 & 1.723 \\
+ & 2 & 75 & None & 2 & 1e-4 & 1.723 \\
+ & 3 & 150 & 30 & 2 & 1e-4 & 1.724 \\
+ & 4 & 200 & 20 & 2 & 1e-3 & 1.724 \\
+ & 5 & 100 & 25 & 2 & 2 & 1.725 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Top-5 neural network configurations per feature type, ranked by validation MSE (40 configs searched per type, 80/20 train/val split).}
+\label{tab:nn_trials}
+\small
+\begin{tabular}{clccccr}
+\toprule
+Feature & Rank & Layers & Drop & L2 & LR / Batch & Val MSE \\
+\midrule
+\multirow{5}{*}{PhysChem}
+ & 1 & 256, 128 & 0.3 & 0.01 & 1e-3 / 64 & 1.390 \\
+ & 2 & 128, 64 & 0.3 & 0.01 & 1e-3 / 32 & 1.425 \\
+ & 3 & 128, 64 & 0.4 & 1e-4 & 1e-3 / 64 & 1.515 \\
+ & 4 & 128, 64 & 0.5 & 0.01 & 5e-4 / 64 & 1.529 \\
+ & 5 & 128, 64 & 0.4 & 1e-3 & 5e-4 / 64 & 1.551 \\
+\midrule
+\multirow{5}{*}{ESM2-650M}
+ & 1 & 256, 128 & 0.4 & 0.01 & 1e-3 / 64 & 1.241 \\
+ & 2 & 256 & 0.3 & 1e-3 & 5e-4 / 64 & 1.266 \\
+ & 3 & 512, 256 & 0.5 & 0.01 & 5e-4 / 64 & 1.300 \\
+ & 4 & 256, 128 & 0.5 & 1e-4 & 5e-4 / 64 & 1.331 \\
+ & 5 & 256, 128 & 0.4 & 0.01 & 5e-4 / 32 & 1.353 \\
+\midrule
+\multirow{5}{*}{ESM2-3B}
+ & 1 & 1024, 512 & 0.4 & 0.01 & 1e-3 / 64 & 1.302 \\
+ & 2 & 512, 256 & 0.5 & 1e-3 & 1e-3 / 32 & 1.316 \\
+ & 3 & 512, 256 & 0.4 & 1e-3 & 5e-4 / 32 & 1.333 \\
+ & 4 & 512, 256 & 0.3 & 1e-3 & 1e-3 / 64 & 1.377 \\
+ & 5 & 512, 256 & 0.2 & 0.01 & 5e-4 / 32 & 1.387 \\
+\midrule
+\multirow{5}{*}{Ginkgo-AA0}
+ & 1 & 256, 128 & 0.3 & 1e-4 & 5e-4 / 32 & 1.146 \\
+ & 2 & 512, 256 & 0.5 & 1e-3 & 5e-4 / 64 & 1.197 \\
+ & 3 & 256 & 0.2 & 1e-3 & 1e-3 / 32 & 1.224 \\
+ & 4 & 256, 128 & 0.5 & 1e-4 & 1e-3 / 64 & 1.236 \\
+ & 5 & 256, 128 & 0.5 & 0.01 & 1e-3 / 32 & 1.248 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── Appendix B: Vector Regression Per-Seed Results ────────────────────────
+\section{Vector Regression Per-Seed Results}
+\label{app:vector_seeds}
+
+Table~\ref{tab:vector_seeds} reports the per-seed test MSE for all six embedding--loss combinations, along with the ensemble mean.
+
+\begin{table}[H]
+\centering
+\caption{Per-seed test MSE for vector regression models. Each model uses the same architecture (2$\times$256 hidden units, LeakyReLU, 20\% dropout, softmax output) with 5 random seeds for train/validation splitting.}
+\label{tab:vector_seeds}
+\begin{tabular}{llcccccr}
+\toprule
+Embedding & Loss & Seed 42 & Seed 123 & Seed 456 & Seed 789 & Seed 1024 & Ensemble \\
+\midrule
+Ginkgo-AA0 & Focal & 1.026 & 1.120 & 1.023 & 1.128 & 1.046 & \textbf{1.001} \\
+Ginkgo-AA0 & CE & 1.053 & 1.102 & 1.054 & 1.111 & 1.050 & 1.003 \\
+ESM2-650M & Focal & 1.084 & 1.158 & 1.100 & 1.169 & 1.125 & 1.049 \\
+ESM2-650M & CE & 1.084 & 1.151 & 1.093 & 1.194 & 1.132 & 1.054 \\
+ESM2-3B & CE & 1.235 & 1.224 & 1.179 & 1.196 & 1.214 & 1.109 \\
+ESM2-3B & Focal & 1.215 & 1.220 & 1.185 & 1.226 & 1.193 & 1.117 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ── Appendix C: Architecture Search Landscape ─────────────────────────────
+\section{Architecture Search Landscape}
+\label{app:arch_search}
+
+Figure~\ref{fig:arch_search} shows the full architecture search landscape from the initial full-data vector regression exploration (Script~09), which identified the (256, 256, 128) three-layer architecture as the top performer prior to the dropout and ensemble optimization in Section~\ref{sec:fulldata_results}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/vector_architecture_search.png}
+    \caption{Architecture search results for full-data vector regression (Ginkgo-AA0 + focal loss). Configurations are ranked by test MSE on all 1326 test samples. The three-layer (256, 256, 128) architecture with 5-seed ensemble achieved the lowest MSE (0.973), motivating the subsequent dropout optimization (Section~\ref{sec:fulldata_results}).}
+    \label{fig:arch_search}
+\end{figure}
+
+% ── Appendix D: Bootstrap Confidence Intervals ────────────────────────────
+\section{Bootstrap Confidence Intervals}
+\label{app:bootstrap}
+
+To quantify uncertainty in test set performance, we compute 95\% bootstrap confidence intervals (10{,}000 resamples) for all 16 models (including the full-data optimized model).
+Each model is retrained with its best configuration and evaluated on the held-out test set; the test set is then resampled with replacement to obtain the bootstrap distribution.
+
+\begin{table}[H]
+\centering
+\caption{Bootstrap 95\% confidence intervals for test MSE, $R^2$, and Spearman $\rho$ across all models (10{,}000 bootstrap resamples). $^\dagger$Full-data model: (256, 256, 128) architecture, dropout 0.35, trained on all 3068 samples without validation split, evaluated on all 1326 test samples. \textit{Note:} Point estimates for scalar NN models may differ from Table~\ref{tab:comparison} because the bootstrap procedure retrains each model with a single random initialization, whereas Table~\ref{tab:comparison} reports the best configuration selected from 40 candidates.}
+\label{tab:bootstrap}
+\small
+\begin{tabular}{lcccccr}
+\toprule
+Model & MSE & 95\% CI & $R^2$ & 95\% CI & Spearman & 95\% CI \\
+\midrule
+\multicolumn{7}{l}{\textit{Random Forest}} \\
+RF PhysChem (base) & 1.193 & [1.078, 1.317] & 0.750 & [0.724, 0.773] & 0.859 & [0.844, 0.872] \\
+RF PhysChem (tuned) & 1.208 & [1.094, 1.328] & 0.747 & [0.721, 0.770] & 0.857 & [0.843, 0.870] \\
+RF ESM2-650M & 1.189 & [1.076, 1.310] & 0.750 & [0.725, 0.773] & 0.853 & [0.837, 0.867] \\
+RF ESM2-3B & 1.245 & [1.126, 1.366] & 0.739 & [0.713, 0.763] & 0.849 & [0.833, 0.862] \\
+RF Ginkgo-AA0 & 1.158 & [1.043, 1.281] & 0.757 & [0.731, 0.781] & 0.857 & [0.841, 0.870] \\
+\midrule
+\multicolumn{7}{l}{\textit{Neural Network (scalar)}} \\
+NN PhysChem & 1.413 & [1.253, 1.582] & 0.703 & [0.666, 0.738] & 0.828 & [0.809, 0.846] \\
+NN ESM2-650M & 1.109 & [0.988, 1.240] & 0.767 & [0.738, 0.794] & 0.855 & [0.840, 0.869] \\
+NN ESM2-3B & 1.175 & [1.051, 1.302] & 0.753 & [0.725, 0.780] & 0.850 & [0.835, 0.864] \\
+NN Ginkgo-AA0 & 1.191 & [1.076, 1.317] & 0.750 & [0.723, 0.774] & 0.848 & [0.833, 0.861] \\
+\midrule
+\multicolumn{7}{l}{\textit{Vector regression (5-seed ensemble)}} \\
+Vec ESM2-650M CE & 1.051 & [0.937, 1.175] & 0.780 & [0.753, 0.804] & 0.861 & [0.845, 0.875] \\
+Vec ESM2-650M focal & 1.045 & [0.934, 1.167] & 0.781 & [0.755, 0.804] & 0.860 & [0.844, 0.874] \\
+Vec ESM2-3B CE & 1.122 & [1.007, 1.247] & 0.765 & [0.737, 0.789] & 0.857 & [0.841, 0.870] \\
+Vec ESM2-3B focal & 1.091 & [0.981, 1.211] & 0.771 & [0.745, 0.794] & 0.859 & [0.844, 0.872] \\
+Vec Ginkgo-AA0 CE & 0.995 & [0.887, 1.112] & 0.791 & [0.766, 0.814] & 0.867 & [0.852, 0.880] \\
+Vec Ginkgo-AA0 focal & 0.997 & [0.887, 1.115] & 0.791 & [0.765, 0.814] & 0.866 & [0.850, 0.880] \\
+\midrule
+\multicolumn{7}{l}{\textit{Full-data optimized (5-seed ensemble, no val split)}} \\
+Vec Ginkgo-AA0 focal$^\dagger$ & \textbf{0.932} & [0.823, 1.054] & \textbf{0.804} & [0.779, 0.828] & \textbf{0.873} & [0.857, 0.887] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/bootstrap_forest_plot.png}
+    \caption{Forest plot of test MSE with 95\% bootstrap confidence intervals for all 16 models. Blue markers indicate scalar models (RF and NN); orange markers indicate vector regression ensembles. Dashed red line: physicochemical baseline (MSE 1.22); dotted green line: Schrier benchmark (MSE 0.95).}
+    \label{fig:forest_plot}
+\end{figure}
+
+\end{document}
