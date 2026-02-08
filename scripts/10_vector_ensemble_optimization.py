@@ -497,7 +497,7 @@ def _make_figure(results):
     ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=7)
     ax.set_ylabel('Test MSE (all 1326 samples)')
     ax.set_title('Vector Ensemble Optimization: Dropout and Architecture Tuning')
-    ax.legend(loc='upper right')
+    ax.legend(loc='lower right')
 
     for bar in bars:
         h = bar.get_height()
