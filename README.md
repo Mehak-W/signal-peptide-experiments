@@ -57,7 +57,7 @@ signal_peptide_study/
 ## Setup
 
 1. Install dependencies: `pip install -r requirements.txt`
-2. Place data files in the `data/` directory (see [Data](#data) section below for sources and file descriptions). Scripts 01-04 require the Grasso dataset files; Script 05 additionally requires the external dataset files; Script 07 requires the design variant embeddings.
+2. All required data files are included in the `data/` directory. No additional downloads are needed.
 
 ## Running
 
@@ -195,37 +195,37 @@ cd paper && bash compile.sh
 
 ## Data
 
-All data files are included in the `data/` directory.
+All data files are included in the `data/` directory. No additional downloads are needed.
 
 ### Grasso et al. (primary dataset)
 
-The xlsx and PLM embedding parquet files originate from the [Schrier lab repository](https://github.com/mfbliposome/signal_peptides). The xlsx is also available from the [ACS Synth. Bio. 2023 Supporting Info](https://doi.org/10.1021/acssynbio.2c00328). PLM embeddings were generated using ESM-2 and the Ginkgo Bioworks API; see the Schrier repository for generation scripts.
+The xlsx originates from [Grasso et al., ACS Synth. Bio. 2023](https://doi.org/10.1021/acssynbio.2c00328). PLM embeddings were generated using ESM-2 and the Ginkgo Bioworks API (see [Schrier lab repository](https://github.com/mfbliposome/signal_peptides) for generation scripts).
 
-| File | Description | Included |
-|------|-------------|----------|
-| `sb2c00328_si_011.xlsx` | 156 physicochemical features + WA values for 4408 SPs | Yes |
-| `trainAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, train split | Yes |
-| `testAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, test split | Yes |
-| `trainAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, train split | Yes |
-| `testAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, test split | Yes |
-| `trainAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, train split | Yes |
-| `testAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, test split | Yes |
+| File | Description |
+|------|-------------|
+| `sb2c00328_si_011.xlsx` | 156 physicochemical features + WA values for 4408 SPs |
+| `trainAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, train split |
+| `testAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, test split |
+| `trainAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, train split |
+| `testAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, test split |
+| `trainAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, train split |
+| `testAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, test split |
 
 ### Design variant embeddings (Script 07)
 
-ESM2-650M embeddings computed for the Grasso design library variants (sequences from the xlsx with Set = NaN).
+ESM2-650M embeddings for the Grasso design library variants (sequences from the xlsx with Set = NaN).
 
-| File | Description | N | Included |
-|------|-------------|---|----------|
-| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for design library variants | 3,838 | Yes |
+| File | Description | N |
+|------|-------------|---|
+| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for design library variants | 3,838 |
 
 ### External datasets (Script 05)
 
-ESM2-650M embeddings computed for signal peptide sequences from four published datasets.
+ESM2-650M embeddings for signal peptide sequences from four published datasets.
 
-| File | Description | N | Included |
-|------|-------------|---|----------|
-| `wu_esm_embeddings.parquet` | Wu et al. --- binary secretion (functional/non-functional) | 81 | Yes |
-| `xue_esm_embeddings.parquet` | Xue et al. --- enzyme activity (continuous) | 322 | Yes |
-| `zhang_p43_esm_embeddings.parquet` | Zhang et al. --- P43 promoter, *B. subtilis* | 114 | Yes |
-| `zhang_pglvm_esm_embeddings.parquet` | Zhang et al. --- PglVM promoter, same 114 SPs | 114 | Yes |
+| File | Description | N |
+|------|-------------|---|
+| `wu_esm_embeddings.parquet` | Wu et al. --- binary secretion (functional/non-functional) | 81 |
+| `xue_esm_embeddings.parquet` | Xue et al. --- enzyme activity (continuous) | 322 |
+| `zhang_p43_esm_embeddings.parquet` | Zhang et al. --- P43 promoter, *B. subtilis* | 114 |
+| `zhang_pglvm_esm_embeddings.parquet` | Zhang et al. --- PglVM promoter, same 114 SPs | 114 |
