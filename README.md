@@ -195,33 +195,37 @@ cd paper && bash compile.sh
 
 ## Data
 
-Data files are not included in this repository due to size. Place them in the `data/` directory (or use symlinks) before running scripts.
+All data files are included in the `data/` directory.
 
 ### Grasso et al. (primary dataset)
 
-| File | Description | Source |
-|------|-------------|--------|
-| `sb2c00328_si_011.xlsx` | 156 physicochemical features + WA values for 4408 SPs | [ACS Synth. Bio. 2023 Supporting Info](https://doi.org/10.1021/acssynbio.2c00328) |
-| `trainAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, train split | Precomputed from SP sequences using [ESM-2](https://github.com/facebookresearch/esm) |
-| `testAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, test split | Same |
-| `trainAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, train split | Same |
-| `testAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, test split | Same |
-| `trainAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, train split | Computed using [Ginkgo AA-0](https://models.ginkgobioworks.com) |
-| `testAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, test split | Same |
+The xlsx and PLM embedding parquet files originate from the [Schrier lab repository](https://github.com/mfbliposome/signal_peptides). The xlsx is also available from the [ACS Synth. Bio. 2023 Supporting Info](https://doi.org/10.1021/acssynbio.2c00328). PLM embeddings were generated using ESM-2 and the Ginkgo Bioworks API; see the Schrier repository for generation scripts.
+
+| File | Description | Included |
+|------|-------------|----------|
+| `sb2c00328_si_011.xlsx` | 156 physicochemical features + WA values for 4408 SPs | Yes |
+| `trainAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, train split | Yes |
+| `testAA_esm2-650M.parquet` | ESM2-650M (1280d) embeddings, test split | Yes |
+| `trainAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, train split | Yes |
+| `testAA_esm2-3B.parquet` | ESM2-3B (2560d) embeddings, test split | Yes |
+| `trainAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, train split | Yes |
+| `testAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, test split | Yes |
 
 ### Design variant embeddings (Script 07)
 
-| File | Description | N |
-|------|-------------|---|
-| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for Grasso design library variants | 3,838 |
+ESM2-650M embeddings computed for the Grasso design library variants (sequences from the xlsx with Set = NaN).
+
+| File | Description | N | Included |
+|------|-------------|---|----------|
+| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for design library variants | 3,838 | Yes |
 
 ### External datasets (Script 05)
 
-| File | Description | N | WA Range |
-|------|-------------|---|----------|
-| `wu_esm_embeddings.parquet` | Wu et al. --- binary secretion (functional/non-functional) | 81 | 0-1 |
-| `xue_esm_embeddings.parquet` | Xue et al. --- enzyme activity (continuous) | 322 | 0-10437 |
-| `zhang_p43_esm_embeddings.parquet` | Zhang et al. --- P43 promoter, *B. subtilis* | 114 | 0-193 |
-| `zhang_pglvm_esm_embeddings.parquet` | Zhang et al. --- PglVM promoter, same 114 SPs | 114 | 0-327 |
+ESM2-650M embeddings computed for signal peptide sequences from four published datasets.
 
-All external datasets contain ESM2-650M (1280d) embeddings only.
+| File | Description | N | Included |
+|------|-------------|---|----------|
+| `wu_esm_embeddings.parquet` | Wu et al. --- binary secretion (functional/non-functional) | 81 | Yes |
+| `xue_esm_embeddings.parquet` | Xue et al. --- enzyme activity (continuous) | 322 | Yes |
+| `zhang_p43_esm_embeddings.parquet` | Zhang et al. --- P43 promoter, *B. subtilis* | 114 | Yes |
+| `zhang_pglvm_esm_embeddings.parquet` | Zhang et al. --- PglVM promoter, same 114 SPs | 114 | Yes |
