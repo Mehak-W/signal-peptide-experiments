@@ -175,12 +175,12 @@ For the Zhang datasets, we additionally evaluate cross-promoter prediction consi
 \subsection{Design Task Evaluation}
 \label{sec:design_methods}
 
-The Grasso library contains 4836 designed signal peptide variants (Set = NaN in the original data, excluding 393 that overlap with the train/test sets) spanning 134 genes with known WA values.
+The Grasso library contains 4836 designed signal peptide variants with known WA values (Set = NaN in the original data, after excluding 393 that overlap with the train/test sets), spanning 134 genes.
+A minimum of 5 variants per gene is required for per-gene metrics, yielding 4832 variants across 131 genes for evaluation.
 PLM embeddings are unavailable for these variants, so we use the 156 physicochemical features.
 RF and NN models are trained on the Grasso training set and evaluated on the design variants.
 Wild-type WA for each gene is computed as the mean WA across Library rows where Library = `WT' (137 genes, 6 rows total).
 Per-gene and overall Spearman $\rho$ are computed, along with classification accuracy for predicting whether a variant performs better or worse than wild type.
-A minimum of 5 variants per gene is required for per-gene metrics.
 
 \subsection{Evaluation}
 \label{sec:metrics}
@@ -438,7 +438,8 @@ The moderate but significant correlations suggest that these models can serve as
 Several limitations should be noted.
 The RF and NN hyperparameter searches used different validation strategies (5-fold CV vs.\ single train/val split), which may introduce some asymmetry in the comparison.
 The dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme.
-While full-data training with optimized regularization (MSE 0.932) surpasses the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping and may limit applicability when computational resources are constrained.
+While full-data training with optimized regularization (MSE 0.932) surpasses the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping.
+Moreover, the dropout rate (0.35) was selected based on test set MSE rather than a held-out validation set, so the reported improvement should be interpreted as an upper bound on out-of-sample performance; a proper nested cross-validation design would provide a less optimistic but more rigorous estimate.
 The design task is limited to physicochemical features due to the absence of PLM embeddings for design variants.
 Additionally, the differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
 The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), three of the four NN correlations no longer reach significance, though all RF correlations remain significant.
