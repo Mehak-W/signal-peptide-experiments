@@ -426,7 +426,7 @@ def main():
     print(f"\n{'='*60}")
     print(f"  FINAL SUMMARY  ({total_min:.1f} min)")
     print(f"{'='*60}")
-    print(f"  Schrier benchmark:     {SCHRIER_MSE}")
+    print(f"  Dr. Schrier benchmark: {SCHRIER_MSE}")
     print(f"  Script 09 best:        {SCRIPT09_BEST}")
     print(f"  This script best:      {best_mse:.4f}  ({best_name})")
 
@@ -436,7 +436,7 @@ def main():
         print(f"\n  *** BEAT SCHRIER by {gap:.4f} ({pct:.1f}%)! ***")
     else:
         gap = best_mse - SCHRIER_MSE
-        print(f"\n  Gap to Schrier: +{gap:.4f}")
+        print(f"\n  Gap to Dr. Schrier: +{gap:.4f}")
 
     improvement = SCRIPT09_BEST - best_mse
     print(f"  Improvement over Script 09: {improvement:.4f}")
@@ -489,14 +489,14 @@ def _make_figure(results):
     bars = ax.bar(x, mses, color=colors, alpha=0.85)
 
     ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=2,
-               label=f'Schrier ({SCHRIER_MSE})')
+               label=f'Dr. Schrier ({SCHRIER_MSE})')
     ax.axhline(y=SCRIPT09_BEST, color='gray', linestyle='--', linewidth=1.2,
                label=f'Script 09 best ({SCRIPT09_BEST})')
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=7)
     ax.set_ylabel('Test MSE (all 1326 samples)')
-    ax.set_title("Script 10: Closing the Gap to Schrier's 0.953")
+    ax.set_title('Vector Ensemble Optimization: Dropout and Architecture Tuning')
     ax.legend(loc='upper right')
 
     for bar in bars:

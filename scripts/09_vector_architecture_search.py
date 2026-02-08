@@ -597,7 +597,7 @@ def main():
     print(f"\n{'='*60}")
     print(f"  FINAL SUMMARY  ({total_min:.1f} min)")
     print(f"{'='*60}")
-    print(f"  Schrier benchmark:       {SCHRIER_MSE}")
+    print(f"  Dr. Schrier benchmark:   {SCHRIER_MSE}")
     print(f"  Our Script 06 best:      1.001  (val split, 1273 test)")
     print(f"  Phase 1 best single:     {phase1[best_p1]['mse']:.4f}  ({best_p1})")
     print(f"  Phase 2 (5-seed):        {mse_5:.4f}")
@@ -612,7 +612,7 @@ def main():
         print(f"\n  *** BEAT SCHRIER by {gap:.4f} ({pct:.1f}%)! ***")
     else:
         gap = overall_best_mse - SCHRIER_MSE
-        print(f"\n  Gap to Schrier: +{gap:.4f}")
+        print(f"\n  Gap to Dr. Schrier: +{gap:.4f}")
 
     save_results(all_results)
 
@@ -663,14 +663,14 @@ def _make_figure(all_results, p1, p3, p4):
 
     # Reference lines
     ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=2,
-               label=f'Schrier ({SCHRIER_MSE})')
+               label=f'Dr. Schrier ({SCHRIER_MSE})')
     ax.axhline(y=1.001, color='gray', linestyle='--', linewidth=1.2,
                label='Script 06 best (1.001)')
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=8)
     ax.set_ylabel('Test MSE (all 1326 samples)')
-    ax.set_title("Script 09: Beating Schrier's 0.95 Benchmark")
+    ax.set_title('Vector Architecture Search: Full-Data Training Results')
     ax.legend(loc='upper right')
 
     for bar in bars:

@@ -248,7 +248,7 @@ def main():
         print(f"  {key:<30} {m['mse']:>10.4f} {m['r2']:>8.4f} "
               f"{m['spearman_rho']:>10.4f} {r['elapsed_seconds']:>7.1f}s")
 
-    print(f"\n  Schrier benchmark: MSE = 0.95")
+    print(f"\n  Dr. Schrier benchmark: MSE = 0.95")
     print(f"  Script 03 best (NN Ginkgo-AA0): MSE = 1.0497")
 
     # ── 4. Figure ──────────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ def _make_figure(results):
 
     # Reference lines
     ax.axhline(y=1.0497, color='gray', linewidth=1.2, linestyle='--', label='NN Regression Best (1.05)')
-    ax.axhline(y=0.95, color='green', linewidth=1.2, linestyle=':', label='Schrier Benchmark (0.95)')
+    ax.axhline(y=0.95, color='green', linewidth=1.2, linestyle=':', label='Dr. Schrier Benchmark (0.95)')
 
     # Labels
     ax.set_ylabel('Test MSE')
