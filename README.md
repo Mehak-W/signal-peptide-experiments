@@ -9,7 +9,7 @@ Systematic evaluation of machine learning models for predicting signal peptide s
 | Best scalar NN (Ginkgo-AA0) | 1.050 | -14.0% |
 | Best vector NN (Ginkgo-AA0 + focal, val split) | 1.001 | -18.0% |
 | **Best overall** (full-data, dropout 0.35, 5-seed) | **0.932** | **-23.6%** |
-| Prior benchmark (Schrier) | 0.953 | -21.9% |
+| Prior benchmark (Dr. Schrier) | 0.953 | -21.9% |
 | Baseline (Grasso et al. RF) | 1.22 | --- |
 
 ## Methodology
@@ -150,7 +150,7 @@ All scripts save results to `results/` (JSON + CSV) and figures to `figures/` (P
 | (256, 256, 128, 64), 5-seed | 0.20 | 0.940 | --- | --- |
 | Mixed 3-arch x 5-seed | --- | 0.967 | --- | --- |
 
-Best result: MSE **0.932** [0.823, 1.054] 95% CI, beating Schrier's 0.953 by 2.2% and the Grasso baseline of 1.22 by 23.6%.
+Best result: MSE **0.932** [0.823, 1.054] 95% CI, beating Dr. Schrier's 0.953 by 2.2% and the Grasso baseline of 1.22 by 23.6%.
 
 ### Cross-Dataset Generalization (Script 05)
 
@@ -199,7 +199,7 @@ All data files are included in the `data/` directory. No additional downloads ar
 
 ### Grasso et al. (primary dataset)
 
-The xlsx originates from [Grasso et al., ACS Synth. Bio. 2023](https://doi.org/10.1021/acssynbio.2c00328). PLM embeddings were generated using ESM-2 and the Ginkgo Bioworks API (see [Schrier lab repository](https://github.com/mfbliposome/signal_peptides) for generation scripts).
+The xlsx originates from [Grasso et al., ACS Synth. Bio. 2023](https://doi.org/10.1021/acssynbio.2c00328). PLM embeddings were generated using ESM-2 and the Ginkgo Bioworks API (see [Dr. Schrier lab repository](https://github.com/mfbliposome/signal_peptides) for generation scripts).
 
 | File | Description |
 |------|-------------|
