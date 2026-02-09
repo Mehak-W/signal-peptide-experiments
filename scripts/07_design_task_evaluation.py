@@ -3,8 +3,7 @@
 Script 07: Grasso Design Task Evaluation
 
 Tests whether models can predict which designed mutations improve vs worsen
-signal peptide secretion efficiency. Addresses Schrier's suggestion:
-"How do your models compare to [Grasso's design] result?"
+signal peptide secretion efficiency.
 
 Approach:
   1. Train models on Grasso training data
