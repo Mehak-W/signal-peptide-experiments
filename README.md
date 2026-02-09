@@ -145,7 +145,7 @@ All scripts save results to `results/` (JSON + CSV) and figures to `figures/` (P
 |---|---|---|---|---|
 | **Ginkgo-AA0** | **Focal** | **1.001** | **0.790** | **0.867** |
 | Ginkgo-AA0 | Cross-Entropy | 1.003 | 0.790 | 0.867 |
-| ESM2-650M | Focal | 1.049 | 0.780 | 0.860 |
+| ESM2-650M | Focal | 1.049 | 0.780 | 0.859 |
 | ESM2-650M | Cross-Entropy | 1.054 | 0.779 | 0.861 |
 | ESM2-3B | Cross-Entropy | 1.109 | 0.767 | 0.857 |
 | ESM2-3B | Focal | 1.117 | 0.766 | 0.856 |

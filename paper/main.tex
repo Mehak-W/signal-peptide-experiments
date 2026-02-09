@@ -179,7 +179,7 @@ The Grasso library contains 4836 designed signal peptide variants with known WA 
 A minimum of 5 variants per gene is required for per-gene metrics, yielding 4832 variants across 131 genes for evaluation.
 We evaluate two feature representations: the 156 physicochemical features available from the source data, and ESM2-650M embeddings (1280 dimensions) generated via mean-pooled representations from the pretrained model \citep{lin2023}.
 For each feature type, RF and NN models are trained on the Grasso training set with the best hyperparameters from Sections~\ref{sec:rf}--\ref{sec:nn} and evaluated on the design variants.
-Wild-type WA for each gene is computed as the mean WA across Library rows where Library = `WT' (137 genes, 6 rows total).
+Wild-type WA for each gene is determined by matching the wild-type signal peptide sequence (from the ``WT sequences'' sheet of the source spreadsheet) against Library rows with the same amino acid sequence and taking the mean WA of matching rows, yielding WT WA values for 137 genes.
 Per-gene and overall Spearman $\rho$ are computed, along with classification accuracy for predicting whether a variant performs better or worse than wild type.
 
 \subsection{Evaluation}
@@ -447,7 +447,7 @@ While full-data training with optimized regularization (MSE 0.932) surpasses the
 To verify that the dropout selection is not an artifact of test-set model selection, we repeated the dropout sweep with an independent 80/20 train/validation split (Appendix~\ref{app:dropout_val}).
 Validation MSE decreases from 1.384 at dropout 0.15 to 1.341 at dropout 0.30, confirming that higher dropout improves generalization; the validation-optimal (0.30) and test-optimal (0.35) dropouts are adjacent and statistically indistinguishable on held-out data.
 The differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
-The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), three of the four NN correlations no longer reach significance, though all RF correlations remain significant.
+The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), three of the four NN correlations and two of the four RF correlations no longer reach significance. The Wu and Xue datasets retain significant RF correlations, and only Xue retains a significant NN correlation.
 
 % ══════════════════════════════════════════════════════════════════════════
 \section{Conclusion}
