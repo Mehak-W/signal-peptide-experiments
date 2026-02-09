@@ -16,13 +16,14 @@ Systematic evaluation of machine learning models for predicting signal peptide s
 
 | # | Script | Approach |
 |---|--------|----------|
+| 0 | Generate design embeddings | ESM2-650M mean-pooled embeddings for design variants (prerequisite for Script 07) |
 | 1 | Baseline reproduction | Exact Grasso et al. RF params: 75 trees, depth 25, min_split 0.001, min_leaf 0.0001 |
 | 2 | RF hyperparameter search | RandomizedSearchCV (100 iters, 5-fold CV) per feature type |
 | 3 | NN regression search | 40 configs per feature type, dimension-aware architecture grids |
 | 4 | Final comparison | Grouped bar chart + CSV summary of all scalar models |
 | 5 | Cross-dataset generalization | Evaluate on 4 external SP datasets (Wu, Xue, Zhang) |
 | 6 | Vector regression | Dense(10, softmax) predicting bin distributions with focal/CE loss |
-| 7 | Design task evaluation | Predicting mutation effects on 4,832 designed SP variants |
+| 7 | Design task evaluation | Predicting mutation effects on 4,832 designed SP variants (PhysChem + ESM2-650M) |
 | 8 | Bootstrap CIs | 10,000-resample 95% CIs for all 16 models |
 | 9 | Vector architecture search | Full-data training with 3- and 4-layer architectures |
 | 10 | Vector ensemble optimization | Dropout tuning, 20-seed ensembles, mixed-architecture ensembles |
@@ -38,13 +39,14 @@ signal_peptide_study/
 │   ├── models.py         SignalPeptideRegressorNN, SignalPeptideVectorNN, FocalLoss
 │   └── evaluation.py     compute_metrics (MSE, RMSE, MAE, R², Spearman, Pearson)
 ├── scripts/
+│   ├── 00_generate_design_embeddings.py     ESM2-650M embeddings for design variants
 │   ├── 01_grasso_reproduction.py            Grasso et al. RF reproduction
 │   ├── 02_rf_hyperparameter_search.py       RF search across 4 feature types
 │   ├── 03_nn_regression.py                  NN regression search, dimension-aware
 │   ├── 04_final_comparison.py               Grouped bar chart + CSV summary
 │   ├── 05_cross_dataset_generalization.py   External dataset evaluation
 │   ├── 06_vector_regression.py              Vector regression with focal loss
-│   ├── 07_design_task_evaluation.py         Design variant mutation prediction
+│   ├── 07_design_task_evaluation.py         Design variant prediction (PhysChem + ESM2-650M)
 │   ├── 08_bootstrap_ci.py                   Bootstrap confidence intervals
 │   ├── 09_vector_architecture_search.py     Full-data architecture search
 │   ├── 10_vector_ensemble_optimization.py   Dropout + ensemble optimization
@@ -64,6 +66,9 @@ signal_peptide_study/
 ## Running
 
 ```bash
+# Step 0: Generate ESM2-650M embeddings for design variants (~30-60 min CPU, ~5-10 min GPU)
+python3 -u scripts/00_generate_design_embeddings.py
+
 # Step 1: Grasso et al. reproduction (~1 min)
 python3 scripts/01_grasso_reproduction.py
 
@@ -82,7 +87,7 @@ python3 -u scripts/05_cross_dataset_generalization.py
 # Step 6: Vector regression, 5 seeds x 3 embeddings x 2 losses (~1-2 hrs)
 python3 -u scripts/06_vector_regression.py
 
-# Step 7: Design task evaluation (~5 min)
+# Step 7: Design task evaluation, PhysChem + ESM2-650M (~10 min)
 python3 -u scripts/07_design_task_evaluation.py
 
 # Step 8: Bootstrap confidence intervals, 10,000 resamples (~30-40 min)
@@ -170,12 +175,14 @@ Models trained on Grasso data do not generalize to external datasets (significan
 
 ### Design Task Evaluation (Script 07)
 
-| Model | Spearman | Pearson | MSE | ClassAcc |
-|---|---|---|---|---|
-| NN | 0.385 | 0.398 | 4.01 | 71.8% |
-| RF | 0.366 | 0.375 | 4.07 | 73.7% |
+| Features | Model | Spearman | Pearson | MSE | ClassAcc |
+|---|---|---|---|---|---|
+| ESM2-650M (1280d) | NN | **0.391** | **0.404** | **4.02** | 71.9% |
+| PhysChem (156d) | NN | 0.379 | 0.392 | 4.04 | 71.6% |
+| PhysChem (156d) | RF | 0.366 | 0.375 | 4.07 | **73.7%** |
+| ESM2-650M (1280d) | RF | 0.363 | 0.367 | 4.15 | 72.9% |
 
-Both models meaningfully rank 4,832 designed SP variants (p < 10^-150), with classification accuracy well above the 50% random baseline.
+All four models meaningfully rank 4,832 designed SP variants (p < 10^-150), with classification accuracy well above the 50% random baseline. ESM2-650M NN achieves the highest rank correlation.
 
 ### Bootstrap Confidence Intervals (Script 08)
 
@@ -188,7 +195,7 @@ Both models meaningfully rank 4,832 designed SP variants (p < 10^-150), with cla
 3. **RF is robust but flat across feature types** --- all RF models achieve MSE 1.16-1.25 regardless of input representation
 4. **NNs require rich features** --- NN + PhysChem (1.33) is worse than RF + PhysChem (1.21); NNs only outperform RF with PLM embeddings
 5. **Cross-dataset: models do not generalize** --- significant negative Spearman correlations on all 4 external datasets
-6. **Design task: practical utility** --- Spearman 0.37-0.39 and 72-74% classification accuracy on designed variants
+6. **Design task: practical utility** --- Spearman 0.36-0.39 and 72-74% classification accuracy on designed variants using both PhysChem and ESM2-650M features
 
 ## Paper
 
@@ -216,13 +223,14 @@ The xlsx originates from [Grasso et al., ACS Synth. Bio. 2023](https://doi.org/1
 | `trainAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, train split |
 | `testAA_ginkgo-AA0-650M.parquet` | Ginkgo-AA0 (1280d) embeddings, test split |
 
-### Design variant embeddings (Script 07)
-
-ESM2-650M embeddings for the Grasso design library variants (sequences from the xlsx with Set = NaN).
+### Additional embeddings
 
 | File | Description | N |
 |------|-------------|---|
-| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for design library variants | 3,838 |
+| `design_esm2-650M_embeddings.parquet` | ESM2-650M (1280d) embeddings for design variants (generated by Script 00) | 4,911 |
+| `grasso_esm_embeddings.parquet` | ESM2-650M embeddings for train+test sequences (sequence, embedding, WA only) | 3,838 |
+
+The `design_esm2-650M_embeddings.parquet` file is generated by Script 00 and used by Script 07. The `grasso_esm_embeddings.parquet` file contains the same train/test sequences as the split parquet files above but in a single file without the 10 bin probability columns; it is **not** used by the analysis scripts.
 
 ### External datasets (Script 05)
 

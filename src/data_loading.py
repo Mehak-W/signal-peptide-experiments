@@ -325,15 +325,13 @@ def load_wt_sequences(data_dir=None):
     return df_wt
 
 
-def load_design_embeddings(data_dir=None):
+def load_design_embeddings(model_name='esm2-650M', data_dir=None):
     """
-    Load pre-computed ESM2-650M embeddings for design variants.
+    Load precomputed PLM embeddings for design variants.
 
     Returns:
         DataFrame with columns: sequence, embedding, WA
     """
     data_dir = Path(data_dir) if data_dir else _default_data_dir()
-    path = data_dir / 'grasso_esm_embeddings.parquet'
-
-    df = pd.read_parquet(path)
-    return df
+    path = data_dir / f'design_{model_name}_embeddings.parquet'
+    return pd.read_parquet(path)
