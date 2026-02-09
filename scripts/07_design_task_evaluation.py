@@ -1,23 +1,17 @@
 #!/usr/bin/env python3
 """
-Script 07: Grasso Design Task Evaluation
+Script 07: Design Task Evaluation
 
-Tests whether models can predict which designed mutations improve vs worsen
-signal peptide secretion efficiency.
-
-Approach:
-  1. Train models on Grasso training data
-  2. Load design variants with features
-  3. Predict WA for each design variant
-  4. Evaluate ranking accuracy per gene and overall
+Evaluates whether models trained on characterized signal peptide variants can
+predict relative performance of novel designed variants.
 
 Feature types evaluated:
-  - PhysChem (156d): available for ALL design variants from xlsx
-  - ESM2-650M (1280d): generated via Script 00 for design variants
+  - PhysChem (156d): available for all design variants from xlsx
+  - ESM2-650M (1280d): generated via Script 00
 
 Models evaluated per feature type:
-  - RF with best hyperparameters (from Script 02)
-  - NN regression 5-seed ensemble (from Script 03 approach)
+  - RF with best hyperparameters from Script 02 (feature-specific)
+  - NN regression 5-seed ensemble from Script 03 (feature-specific)
 
 Design variants:
   - From xlsx Library_w_Bins_and_WA sheet (Set == NaN, WA not NaN)
@@ -60,8 +54,19 @@ DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 RESULTS_DIR = Path(__file__).resolve().parent.parent / 'results'
 FIGURES_DIR = Path(__file__).resolve().parent.parent / 'figures'
 
-# Best ESM2-650M RF hyperparameters (from Script 02), applied to PhysChem features
-BEST_RF_PARAMS = dict(
+# Best PhysChem RF hyperparameters (from Script 02)
+BEST_PC_RF_PARAMS = dict(
+    n_estimators=75,
+    max_depth=None,
+    min_samples_split=5,
+    min_samples_leaf=2,
+    max_features=0.5,
+    random_state=RANDOM_STATE,
+    n_jobs=-1,
+)
+
+# Best ESM2-650M RF hyperparameters (from Script 02)
+BEST_ESM_RF_PARAMS = dict(
     n_estimators=300,
     max_depth=25,
     min_samples_split=0.001,
@@ -71,7 +76,7 @@ BEST_RF_PARAMS = dict(
     n_jobs=-1,
 )
 
-# NN hyperparameters (PhysChem-scale architecture from Script 03)
+# Best PhysChem NN hyperparameters (from Script 03)
 BEST_NN_PARAMS = dict(
     hidden_layers=(128, 64),
     dropout=0.3,
@@ -310,7 +315,7 @@ def main():
     print("  Training RF (PhysChem)...")
     print(f"{'='*60}")
 
-    rf_pc = RandomForestRegressor(**BEST_RF_PARAMS)
+    rf_pc = RandomForestRegressor(**BEST_PC_RF_PARAMS)
     rf_pc.fit(X_train_pc_scaled, y_train)
 
     y_pred_rf_test = rf_pc.predict(X_test_pc_scaled)
@@ -358,7 +363,7 @@ def main():
     print("  Training RF (ESM2-650M)...")
     print(f"{'='*60}")
 
-    rf_esm = RandomForestRegressor(**BEST_RF_PARAMS)
+    rf_esm = RandomForestRegressor(**BEST_ESM_RF_PARAMS)
     rf_esm.fit(X_train_esm_scaled, y_train_esm)
 
     y_pred_rf_esm_test = rf_esm.predict(X_test_esm_scaled)

@@ -33,7 +33,7 @@ We present a systematic comparison of machine learning approaches for predicting
 A vector regression approach---predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}---achieves a test MSE of 1.001 with Ginkgo-AA0 embeddings using an 80/20 validation split.
 Further optimization using full-data training with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), surpassing both the physicochemical baseline of 1.22 \citep{grasso2023} and a prior benchmark of 0.953 (J.\ Schrier, personal communication).
 Cross-dataset evaluation on four external signal peptide datasets reveals significant negative Spearman correlations, indicating that secretion efficiency rankings are context-dependent and do not transfer across organisms or experimental systems.
-Applied to 4832 designed signal peptide variants using both physicochemical features and ESM2-650M embeddings, RF and NN models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, with the ESM2-650M NN achieving the highest rank correlation ($\rho = 0.391$), demonstrating practical utility for guiding experimental prioritization.
+Applied to 4832 designed signal peptide variants using both physicochemical features and ESM2-650M embeddings, RF and NN models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, with the ESM2-650M NN achieving the highest rank correlation ($\rho = 0.394$), demonstrating practical utility for guiding experimental prioritization.
 \end{abstract}
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -371,17 +371,17 @@ Table~\ref{tab:design} summarizes model performance on ranking 4832 designed sig
 \toprule
 Features & Model & Spearman $\rho$ & Pearson $r$ & MSE & ClassAcc (\%) \\
 \midrule
-ESM2-650M (1280d) & NN & \textbf{0.391} & \textbf{0.404} & \textbf{4.02} & 71.9 \\
-PhysChem (156d) & NN & 0.379 & 0.392 & 4.04 & 71.6 \\
-PhysChem (156d) & RF & 0.366 & 0.375 & 4.07 & \textbf{73.7} \\
+ESM2-650M (1280d) & NN & \textbf{0.394} & \textbf{0.406} & 4.03 & 71.7 \\
+PhysChem (156d) & NN & 0.386 & 0.400 & \textbf{3.99} & 72.0 \\
+PhysChem (156d) & RF & 0.369 & 0.378 & 4.07 & \textbf{74.2} \\
 ESM2-650M (1280d) & RF & 0.363 & 0.367 & 4.15 & 72.9 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 All four models achieve Spearman correlations above 0.36 and classification accuracy above 71\%, with all correlations significant at $p < 10^{-150}$.
-The ESM2-650M NN achieves the highest rank correlation ($\rho = 0.391$), slightly outperforming the PhysChem NN (0.379), PhysChem RF (0.366), and ESM2-650M RF (0.363).
-RF models achieve marginally better classification accuracy (73.7\% PhysChem, 72.9\% ESM2-650M) than NNs (71.6--71.9\%).
+The ESM2-650M NN achieves the highest rank correlation ($\rho = 0.394$), slightly outperforming the PhysChem NN (0.386), PhysChem RF (0.369), and ESM2-650M RF (0.363).
+RF models achieve marginally better classification accuracy (74.2\% PhysChem, 72.9\% ESM2-650M) than NNs (71.7--72.0\%).
 The improvement from ESM2-650M over PhysChem features is modest for the design task, consistent with the smaller RF--NN gap observed for scalar regression (Section~\ref{sec:results}).
 Figure~\ref{fig:design} shows the design task results.
 
@@ -435,7 +435,7 @@ The practical implication is clear: models for signal peptide optimization must 
 
 \paragraph{Design Task.}
 The design task demonstrates that models trained on characterized variants can meaningfully rank novel designed signal peptides, with Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\%, well above the 50\% random baseline.
-Generating ESM2-650M embeddings for the design variants and evaluating all four model--feature combinations reveals that the ESM2-650M NN achieves the highest rank correlation ($\rho = 0.391$), though the improvement over PhysChem features is modest (0.391 vs.\ 0.379 for NN, 0.363 vs.\ 0.366 for RF).
+Generating ESM2-650M embeddings for the design variants and evaluating all four model--feature combinations reveals that the ESM2-650M NN achieves the highest rank correlation ($\rho = 0.394$), though the improvement over PhysChem features is modest (0.394 vs.\ 0.386 for NN, 0.363 vs.\ 0.369 for RF).
 This contrasts with the larger PLM advantage observed in the scalar regression task, suggesting that the design task's evaluation structure (per-gene ranking rather than absolute WA prediction) may limit the benefit of richer representations.
 The moderate but significant correlations suggest that these models can serve as a practical filter for prioritizing candidates in experimental screening campaigns.
 
@@ -457,7 +457,7 @@ We have systematically evaluated signal peptide efficiency prediction across fou
 A vector regression neural network with Ginkgo-AA0 embeddings and focal loss achieves MSE 1.001 ($R^2 = 0.790$) with validation-based training.
 Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), a 23.6\% improvement over the physicochemical baseline of 1.22 and a 2.2\% improvement over the prior benchmark of 0.953.
 Cross-dataset evaluation reveals that secretion efficiency models do not generalize across organisms or experimental systems, underscoring the context-dependence of signal peptide function.
-Applied to designed variants using both physicochemical and ESM2-650M features, the models achieve classification accuracy of 72--74\% and Spearman $\rho$ up to 0.391, demonstrating practical utility for guiding experimental prioritization.
+Applied to designed variants using both physicochemical and ESM2-650M features, the models achieve classification accuracy of 72--74\% and Spearman $\rho$ up to 0.394, demonstrating practical utility for guiding experimental prioritization.
 
 Random forests remain competitive and robust across feature types, making them suitable when interpretability or computational efficiency is prioritized.
 These results demonstrate that realizing the potential of protein language models for biological prediction tasks requires appropriate model architectures---simply replacing hand-crafted features with PLM embeddings does not guarantee improvement.

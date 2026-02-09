@@ -177,12 +177,12 @@ Models trained on Grasso data do not generalize to external datasets (significan
 
 | Features | Model | Spearman | Pearson | MSE | ClassAcc |
 |---|---|---|---|---|---|
-| ESM2-650M (1280d) | NN | **0.391** | **0.404** | **4.02** | 71.9% |
-| PhysChem (156d) | NN | 0.379 | 0.392 | 4.04 | 71.6% |
-| PhysChem (156d) | RF | 0.366 | 0.375 | 4.07 | **73.7%** |
+| ESM2-650M (1280d) | NN | **0.394** | **0.406** | 4.03 | 71.7% |
+| PhysChem (156d) | NN | 0.386 | 0.400 | **3.99** | 72.0% |
+| PhysChem (156d) | RF | 0.369 | 0.378 | 4.07 | **74.2%** |
 | ESM2-650M (1280d) | RF | 0.363 | 0.367 | 4.15 | 72.9% |
 
-All four models meaningfully rank 4,832 designed SP variants (p < 10^-150), with classification accuracy well above the 50% random baseline. ESM2-650M NN achieves the highest rank correlation.
+All four models meaningfully rank 4,832 designed SP variants (p < 10^-150), with classification accuracy well above the 50% random baseline. ESM2-650M NN achieves the highest rank correlation. Each model uses feature-specific best hyperparameters from Script 02 (RF) and Script 03 (NN).
 
 ### Bootstrap Confidence Intervals (Script 08)
 
