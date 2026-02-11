@@ -28,6 +28,8 @@ Systematic evaluation of machine learning models for predicting signal peptide s
 | 9 | Vector architecture search | Full-data training with 3- and 4-layer architectures |
 | 10 | Vector ensemble optimization | Dropout tuning, 20-seed ensembles, mixed-architecture ensembles |
 | 11 | Dropout validation | Validates dropout selection via 80/20 train/val split (independent of test set) |
+| 12 | Bimodal histogram | Motivating figure: bimodal bin distributions where WA falls between peaks |
+| 13 | Cross-dataset fine-tuning | Fine-tune vector ensemble on external datasets (5-fold CV × 5 seeds) |
 
 ## Directory Structure
 
@@ -50,7 +52,9 @@ signal_peptide_study/
 │   ├── 08_bootstrap_ci.py                   Bootstrap confidence intervals
 │   ├── 09_vector_architecture_search.py     Full-data architecture search
 │   ├── 10_vector_ensemble_optimization.py   Dropout + ensemble optimization
-│   └── 11_dropout_validation.py             Validates dropout selection on held-out data
+│   ├── 11_dropout_validation.py             Validates dropout selection on held-out data
+│   ├── 12_bimodal_histogram.py            Bimodal bin distribution figure
+│   └── 13_cross_dataset_finetuning.py     Cross-dataset transfer learning
 ├── results/           JSON + CSV outputs
 ├── figures/           PNG plots (300 DPI)
 ├── paper/             LaTeX manuscript
@@ -101,6 +105,12 @@ python3 -u scripts/10_vector_ensemble_optimization.py
 
 # Step 11: Dropout validation, 80/20 split confirmation (~30 min)
 python3 -u scripts/11_dropout_validation.py
+
+# Step 12: Bimodal histogram figure (~1 min)
+python3 scripts/12_bimodal_histogram.py
+
+# Step 13: Cross-dataset fine-tuning, vector ensemble transfer learning (~30-60 min)
+python3 -u scripts/13_cross_dataset_finetuning.py
 ```
 
 All scripts save results to `results/` (JSON + CSV) and figures to `figures/` (PNG, 300 DPI). A Jupyter notebook (`run_all.ipynb`) is also provided for running all scripts sequentially with explanatory markdown cells.
@@ -173,6 +183,17 @@ Best result: MSE **0.932** [0.823, 1.054] 95% CI, beating Dr. Schrier's 0.953 by
 
 Models trained on Grasso data do not generalize to external datasets (significant negative correlations), indicating context-dependence of signal peptide efficiency prediction.
 
+### Cross-Dataset Fine-Tuning (Script 13)
+
+| Dataset | N | Zero-Shot ρ | Fine-Tuned ρ |
+|---|---|---|---|
+| Wu | 81 | -0.181 | +0.193 ± 0.071 |
+| Xue | 322 | -0.052 | +0.121 ± 0.083 |
+| Zhang-P43 | 114 | -0.254 | +0.034 ± 0.154 |
+| Zhang-PglVM | 114 | -0.282 | -0.040 ± 0.051 |
+
+Fine-tuning the pretrained vector ensemble reverses negative zero-shot correlations for Wu and Xue. Zhang datasets remain near zero due to small sample sizes (~91 training samples per fold).
+
 ### Design Task Evaluation (Script 07)
 
 | Features | Model | Spearman | Pearson | MSE | ClassAcc |
@@ -194,7 +215,7 @@ All four models meaningfully rank 4,832 designed SP variants (p < 10^-150), with
 2. **Vector regression improves over scalar** --- predicting 10-dim bin distributions (softmax) outperforms Dense(1, linear) regression across all embedding types
 3. **RF is robust but flat across feature types** --- all RF models achieve MSE 1.16-1.25 regardless of input representation
 4. **NNs require rich features** --- NN + PhysChem (1.33) is worse than RF + PhysChem (1.21); NNs only outperform RF with PLM embeddings
-5. **Cross-dataset: models do not generalize** --- significant negative Spearman correlations on all 4 external datasets
+5. **Cross-dataset: zero-shot models do not generalize** --- negative correlations reversed by fine-tuning for 2/4 datasets
 6. **Design task: practical utility** --- Spearman 0.36-0.39 and 72-74% classification accuracy on designed variants using both PhysChem and ESM2-650M features
 
 ## Paper
