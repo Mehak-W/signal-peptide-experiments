@@ -131,6 +131,14 @@ This protocol is used for the neural network models in Sections~\ref{sec:vector}
 
 Rather than predicting a scalar WA value, we predict the 10-dimensional bin probability distribution from which WA is derived.
 The WA measurement in \citet{grasso2023} is computed from fluorescence-activated cell sorting into 10 bins, with $\text{WA} = \sum_{i=1}^{10} i \cdot p_i$ where $p_i$ is the fraction of cells in bin $i$.
+Some sequences exhibit bimodal bin distributions where the WA falls between two peaks (Figure~\ref{fig:bimodal}), illustrating that the scalar WA can be a poor summary of the underlying data; predicting the full distribution preserves this information.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{../figures/bimodal_bin_distributions.png}
+    \caption{Examples of bimodal experimental bin probability distributions from the Grasso dataset, selected as variants with probability mass spread across many bins and two distinct peaks. Left: gene \textit{aspB}, variant MKLAKRVSALTPSTTLAITQKAKEL (row 8123, WA = 5.63, peaks at bins 3 and 7). Center: gene \textit{phrC}, variant MKLKSKLFVICLAAAAIFRKKKVSANAEALDF (row 3419, WA = 6.32, peaks at bins 2 and 8). Right: gene \textit{cwlS}, variant MSSGIIVAGLAVSAVVGSSMAAAPAEAKTI (row 9974, WA = 6.57, peaks at bins 4 and 10). The red dashed line indicates the WA, which falls in a valley between the two peaks in each case, demonstrating that the scalar WA can be a poor summary of the underlying distribution.}
+    \label{fig:bimodal}
+\end{figure}
 
 The vector regression architecture uses two hidden layers of 256 units each with LeakyReLU activation and 20\% dropout, followed by a 10-unit output layer with softmax activation to produce a valid probability distribution.
 Unlike the scalar NN (Section~\ref{sec:nn}), batch normalization is omitted.
@@ -140,18 +148,14 @@ Each embedding--loss combination is trained as a 5-seed ensemble (Section~\ref{s
 After prediction, WA is recovered as $\hat{\text{WA}} = \hat{\mathbf{p}} \cdot [1, 2, \ldots, 10]^\top$.
 
 Rows with missing bin probabilities (27 training, 53 test) are excluded from vector regression training, yielding 3068 training samples.
-The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1273 test samples with complete bin data; the full-data models (Section~\ref{sec:fulldata}) evaluate on all 1326 test samples using WA as the target.
+The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1273 test samples with complete bin data; the optimized models described below evaluate on all 1326 test samples using WA as the target.
 
-\subsection{Full-Data Vector Regression Optimization}
 \label{sec:fulldata}
-
-To maximize predictive performance, we perform architecture and regularization optimization on the vector regression model trained without a validation split.
-All 3068 training samples (after excluding rows with missing bin probabilities) are used for training with a fixed epoch budget of 300 and no early stopping.
-Models are evaluated on all 1326 test samples.
-
-Building on the base architecture from Section~\ref{sec:vector}, we explore:
+\paragraph{Architecture and regularization optimization.}
+Building on the base vector architecture, we progressively optimize the model by training without a validation split, using all 3068 training samples with a fixed epoch budget of 300 and no early stopping.
+We explore:
 \begin{itemize}
-    \item \textbf{Dropout rate}: 0.15, 0.20, 0.25, 0.30, and 0.35 (vs.\ the base 0.20), applied to the (256, 256, 128) three-layer architecture with 5-seed ensembles.
+    \item \textbf{Dropout rate}: 0.15, 0.20, 0.25, 0.30, and 0.35 (vs.\ the base 0.20), applied to a deeper (256, 256, 128) three-layer architecture with 5-seed ensembles.
     \item \textbf{Deeper architectures}: 4-layer configurations including (256, 256, 128, 64), (384, 384, 256, 128), and others, with 5-seed ensembles.
     \item \textbf{Cosine annealing}: Learning rate schedule $\eta_t = \eta_0 \cdot \frac{1}{2}(1 + \cos(\pi t / T))$ combined with deeper architectures.
     \item \textbf{Large ensembles}: 20-seed ensembles with the best configurations.
@@ -284,10 +288,10 @@ Figure~\ref{fig:vector} shows the comparison across embeddings and loss function
     \label{fig:vector}
 \end{figure}
 
-\subsection{Full-Data Vector Regression Optimization}
+\paragraph{Architecture and regularization optimization.}
 \label{sec:fulldata_results}
 
-Table~\ref{tab:fulldata} presents results from the full-data architecture and regularization optimization (Section~\ref{sec:fulldata}).
+Table~\ref{tab:fulldata} presents results from the progressive architecture and regularization optimization described in Section~\ref{sec:vector}.
 
 \begin{table}[H]
 \centering

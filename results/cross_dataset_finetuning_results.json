@@ -1,0 +1,334 @@
+{
+  "config": {
+    "vector_config": {
+      "hidden_layers": [
+        256,
+        256,
+        128
+      ],
+      "dropout": 0.35,
+      "learning_rate": 0.0005,
+      "batch_size": 32,
+      "epochs": 200,
+      "loss": "focal"
+    },
+    "finetune_epochs": 100,
+    "finetune_lr": 0.0001,
+    "finetune_patience": 10,
+    "n_folds": 5,
+    "n_seeds": 5,
+    "seeds": [
+      42,
+      123,
+      456,
+      789,
+      1024
+    ]
+  },
+  "grasso_pretrain": {
+    "test_mse": 1.0369902827296402,
+    "test_spearman": 0.859780429879853
+  },
+  "datasets": {
+    "Wu": {
+      "dataset": "Wu",
+      "description": "81 SPs, binary WA (functional/non-functional)",
+      "is_binary": true,
+      "n_samples": 81,
+      "n_folds": 5,
+      "n_seeds": 5,
+      "zero_shot": {
+        "spearman_rho": -0.1805979805452915,
+        "spearman_p": 0.10665426460043731,
+        "pearson_r": -0.19904042426410404,
+        "pearson_p": 0.0748485733219678,
+        "n_samples": 81,
+        "auc_roc": 0.3957317073170732
+      },
+      "fine_tuned_folds": [
+        {
+          "spearman_rho": 0.09622504486493764,
+          "spearman_p": 0.7133353768722819,
+          "pearson_r": 0.06755582166804883,
+          "pearson_p": 0.7967023791192946,
+          "n_samples": 17,
+          "auc_roc": 0.5555555555555556,
+          "fold": 0,
+          "n_train": 64,
+          "n_test": 17
+        },
+        {
+          "spearman_rho": 0.24404676504598824,
+          "spearman_p": 0.36235728767001274,
+          "pearson_r": 0.2655922806212059,
+          "pearson_p": 0.3201258627871363,
+          "n_samples": 16,
+          "auc_roc": 0.640625,
+          "fold": 1,
+          "n_train": 65,
+          "n_test": 16
+        },
+        {
+          "spearman_rho": 0.16269784336399215,
+          "spearman_p": 0.5471512908977916,
+          "pearson_r": 0.2283881057966669,
+          "pearson_p": 0.39489406324968107,
+          "n_samples": 16,
+          "auc_roc": 0.59375,
+          "fold": 2,
+          "n_train": 65,
+          "n_test": 16
+        },
+        {
+          "spearman_rho": 0.29827937950065225,
+          "spearman_p": 0.2618116280795509,
+          "pearson_r": 0.38153915494744706,
+          "pearson_p": 0.14478580344114866,
+          "n_samples": 16,
+          "auc_roc": 0.671875,
+          "fold": 3,
+          "n_train": 65,
+          "n_test": 16
+        },
+        {
+          "spearman_rho": 0.16269784336399215,
+          "spearman_p": 0.5471512908977916,
+          "pearson_r": 0.1833997651792127,
+          "pearson_p": 0.49657167967487803,
+          "n_samples": 16,
+          "auc_roc": 0.59375,
+          "fold": 4,
+          "n_train": 65,
+          "n_test": 16
+        }
+      ],
+      "fine_tuned_aggregate": {
+        "spearman_rho_mean": 0.1927893752279125,
+        "spearman_rho_std": 0.07055654681276465,
+        "pearson_r_mean": 0.22529502564251627,
+        "pearson_r_std": 0.10264748722272762,
+        "auc_roc_mean": 0.611111111111111,
+        "auc_roc_std": 0.040626483828552086
+      }
+    },
+    "Xue": {
+      "dataset": "Xue",
+      "description": "322 SPs, WA 0\u201310437 (enzyme activity units)",
+      "is_binary": false,
+      "n_samples": 322,
+      "n_folds": 5,
+      "n_seeds": 5,
+      "zero_shot": {
+        "spearman_rho": -0.052437407806684044,
+        "spearman_p": 0.34827433769034555,
+        "pearson_r": -0.06971556594948272,
+        "pearson_p": 0.21215758655400976,
+        "n_samples": 322
+      },
+      "fine_tuned_folds": [
+        {
+          "spearman_rho": 0.009965361632155868,
+          "spearman_p": 0.9372025851199532,
+          "pearson_r": 0.06439979172366371,
+          "pearson_p": 0.6102875908043798,
+          "n_samples": 65,
+          "fold": 0,
+          "n_train": 257,
+          "n_test": 65
+        },
+        {
+          "spearman_rho": 0.26445937863871943,
+          "spearman_p": 0.033268330721472804,
+          "pearson_r": 0.29848129929104705,
+          "pearson_p": 0.015732101801075968,
+          "n_samples": 65,
+          "fold": 1,
+          "n_train": 257,
+          "n_test": 65
+        },
+        {
+          "spearman_rho": 0.1350138520024349,
+          "spearman_p": 0.287463550890247,
+          "pearson_r": 0.2046554537209496,
+          "pearson_p": 0.10476145202769899,
+          "n_samples": 64,
+          "fold": 2,
+          "n_train": 258,
+          "n_test": 64
+        },
+        {
+          "spearman_rho": 0.08315113497723092,
+          "spearman_p": 0.5136073577276616,
+          "pearson_r": 0.054561317452621855,
+          "pearson_p": 0.6685005093067933,
+          "n_samples": 64,
+          "fold": 3,
+          "n_train": 258,
+          "n_test": 64
+        },
+        {
+          "spearman_rho": 0.11167582417582418,
+          "spearman_p": 0.3796448479137112,
+          "pearson_r": 0.12900919231292046,
+          "pearson_p": 0.30963624978957416,
+          "n_samples": 64,
+          "fold": 4,
+          "n_train": 258,
+          "n_test": 64
+        }
+      ],
+      "fine_tuned_aggregate": {
+        "spearman_rho_mean": 0.12085311028527308,
+        "spearman_rho_std": 0.08321663444312323,
+        "pearson_r_mean": 0.15022141090024052,
+        "pearson_r_std": 0.0915535051621225
+      }
+    },
+    "Zhang-P43": {
+      "dataset": "Zhang-P43",
+      "description": "114 SPs, WA 0\u2013193 (P43 promoter)",
+      "is_binary": false,
+      "n_samples": 114,
+      "n_folds": 5,
+      "n_seeds": 5,
+      "zero_shot": {
+        "spearman_rho": -0.254095563721774,
+        "spearman_p": 0.006371476658321732,
+        "pearson_r": -0.22122997852147427,
+        "pearson_p": 0.018008323207592387,
+        "n_samples": 114
+      },
+      "fine_tuned_folds": [
+        {
+          "spearman_rho": 0.27872498997677325,
+          "spearman_p": 0.19778888936379505,
+          "pearson_r": 0.11198903306041604,
+          "pearson_p": 0.6109382205943379,
+          "n_samples": 23,
+          "fold": 0,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": -0.1698866031702775,
+          "spearman_p": 0.43835684394628016,
+          "pearson_r": -0.19063587967828635,
+          "pearson_p": 0.38358868476058483,
+          "n_samples": 23,
+          "fold": 1,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": 0.012845849802371542,
+          "spearman_p": 0.9536107425920655,
+          "pearson_r": -0.01229066163905207,
+          "pearson_p": 0.9556136912218024,
+          "n_samples": 23,
+          "fold": 2,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": -0.06622189478171563,
+          "spearman_p": 0.7640186577674879,
+          "pearson_r": -0.0783775177841419,
+          "pearson_p": 0.7222366723897101,
+          "n_samples": 23,
+          "fold": 3,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": 0.11588475467342484,
+          "spearman_p": 0.6075627597770046,
+          "pearson_r": 0.01965840397686559,
+          "pearson_p": 0.9308051836299315,
+          "n_samples": 22,
+          "fold": 4,
+          "n_train": 92,
+          "n_test": 22
+        }
+      ],
+      "fine_tuned_aggregate": {
+        "spearman_rho_mean": 0.0342694193001153,
+        "spearman_rho_std": 0.15404982573816672,
+        "pearson_r_mean": -0.029931324412839744,
+        "pearson_r_std": 0.10107888973018504
+      }
+    },
+    "Zhang-PglVM": {
+      "dataset": "Zhang-PglVM",
+      "description": "114 SPs, WA 0\u2013327 (PglVM promoter)",
+      "is_binary": false,
+      "n_samples": 114,
+      "n_folds": 5,
+      "n_seeds": 5,
+      "zero_shot": {
+        "spearman_rho": -0.2823185370374527,
+        "spearman_p": 0.002340171508333327,
+        "pearson_r": -0.22564075794777033,
+        "pearson_p": 0.01578495885312876,
+        "n_samples": 114
+      },
+      "fine_tuned_folds": [
+        {
+          "spearman_rho": -0.09782608695652174,
+          "spearman_p": 0.6569978005869377,
+          "pearson_r": -0.04950898453711909,
+          "pearson_p": 0.8224982961706588,
+          "n_samples": 23,
+          "fold": 0,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": 0.021760643681447207,
+          "spearman_p": 0.9214940999000873,
+          "pearson_r": -0.05412319656939922,
+          "pearson_p": 0.8062473090093647,
+          "n_samples": 23,
+          "fold": 1,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": -0.10276679841897234,
+          "spearman_p": 0.6407815347518422,
+          "pearson_r": -0.150928618853528,
+          "pearson_p": 0.49182003092655724,
+          "n_samples": 23,
+          "fold": 2,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": -0.016308377073109073,
+          "spearman_p": 0.9411255919561804,
+          "pearson_r": 0.03100083864703121,
+          "pearson_p": 0.8883305302547224,
+          "n_samples": 23,
+          "fold": 3,
+          "n_train": 91,
+          "n_test": 23
+        },
+        {
+          "spearman_rho": -0.005083310002196807,
+          "spearman_p": 0.9820881038179167,
+          "pearson_r": -0.16860652200545503,
+          "pearson_p": 0.45321436557823924,
+          "n_samples": 22,
+          "fold": 4,
+          "n_train": 92,
+          "n_test": 22
+        }
+      ],
+      "fine_tuned_aggregate": {
+        "spearman_rho_mean": -0.04004478575387055,
+        "spearman_rho_std": 0.05075108399416062,
+        "pearson_r_mean": -0.07843329666369403,
+        "pearson_r_std": 0.07319864626854806
+      }
+    }
+  }
+}
