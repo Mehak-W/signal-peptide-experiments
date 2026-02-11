@@ -32,7 +32,7 @@ Signal peptides direct protein secretion in bacteria and are critical targets fo
 We present a systematic comparison of machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest (RF) and neural network (NN) regressors across four feature representations: 156 physicochemical descriptors and three protein language model (PLM) embedding sets (ESM2-650M, ESM2-3B, Ginkgo-AA0).
 A vector regression approach, predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}, achieves a test MSE of 1.001 ($N_{\text{test}} = 1273$) with Ginkgo-AA0 embeddings using an 80/20 validation split.
 Further optimization using full-data training with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), improving 23.6\% over the physicochemical baseline of 1.22 \citep{grasso2023} and reaching below a prior single-model benchmark of 0.953 (J.\ Schrier, personal communication), though the difference is not statistically significant at the 95\% level.
-Cross-dataset evaluation on four external signal peptide datasets reveals significant negative zero-shot Spearman correlations; fine-tuning the output head on target-domain data reverses these for two of four datasets, demonstrating partial transferability of learned representations.
+Cross-dataset evaluation on four external signal peptide datasets reveals significant negative zero-shot Spearman correlations; fine-tuning the output head on target-domain data reverses these for one of four datasets (Wu, binary outcome), with limited evidence for transferability of learned representations.
 Applied to 4832 designed signal peptide variants using both physicochemical features and ESM2-650M embeddings, RF and NN models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, with the ESM2-650M NN achieving the highest rank correlation ($\rho = 0.395$), demonstrating practical utility for guiding experimental prioritization.
 \end{abstract}
 
@@ -398,30 +398,32 @@ Table~\ref{tab:cross} because they come from the vector ensemble rather than the
 \caption{Cross-dataset fine-tuning results. The pretrained vector regression ensemble is
 fine-tuned on each external dataset using 5-fold CV $\times$ 5 seeds. Zero-shot uses the
 vector model directly; fine-tuned replaces and retrains the output head.
-The $\pm$ values are standard deviations across the 5 CV folds (each fold averages 5 seed predictions). No individual fold reaches statistical significance for Wu or either Zhang dataset; one of five Xue folds is significant ($p = 0.03$).}
+The $\pm$ values are standard deviations across the 5 CV folds (each fold averages 5 seed predictions). No individual Wu fold reaches statistical significance ($p > 0.05$). For the three continuous datasets, fine-tuned correlations remain negative; individual folds with significant \emph{negative} correlations appear for Xue (3 of 5 folds), Zhang-P43 (1 of 5), and Zhang-PglVM (1 of 5).}
 \label{tab:finetune}
 \begin{tabular}{lrcc}
 \toprule
 Dataset & $N$ & Zero-Shot $\rho$ & Fine-Tuned $\rho$ \\
 \midrule
-Wu & 81 & $-$0.181 & $+$0.193 $\pm$ 0.071 \\
-Xue & 322 & $-$0.052 & $+$0.121 $\pm$ 0.083 \\
-Zhang-P43 & 114 & $-$0.254 & $+$0.034 $\pm$ 0.154 \\
-Zhang-PglVM & 114 & $-$0.282 & $-$0.040 $\pm$ 0.051 \\
+Wu & 81 & $-$0.206 & $+$0.190 $\pm$ 0.182 \\
+Xue & 322 & $-$0.129 & $-$0.250 $\pm$ 0.104 \\
+Zhang-P43 & 114 & $-$0.211 & $-$0.271 $\pm$ 0.183 \\
+Zhang-PglVM & 114 & $-$0.249 & $-$0.319 $\pm$ 0.143 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Fine-tuning reverses the negative zero-shot correlations for Wu and Xue, shifting
-Spearman $\rho$ from $-$0.181 to $+$0.193 and from $-$0.052 to $+$0.121, respectively.
-For the Zhang datasets, fine-tuning largely eliminates the negative correlations ($-$0.254 $\to$ $+$0.034
-for P43; $-$0.282 $\to$ $-$0.040 for PglVM) but does not achieve positive transfer;
-the resulting correlations are indistinguishable from zero (no individual fold reaches $p < 0.05$),
-likely due to the small training set (91--92 samples per fold) and the fundamental
-biological differences between the Grasso and Zhang experimental systems.
-The high variance across folds (e.g., Zhang-P43 $\pm$ 0.154) reflects the instability
-of fine-tuning on small datasets.
-Figure~\ref{fig:finetune} visualizes the zero-shot to fine-tuned improvement.
+Fine-tuning reverses the negative zero-shot correlation only for Wu, shifting
+Spearman $\rho$ from $-$0.206 to $+$0.190, though with high variance across folds ($\pm$ 0.182)
+and no individual fold reaching statistical significance.
+For the three continuous datasets, fine-tuning fails to improve and in some cases worsens
+the negative correlations: Xue shifts from $-$0.129 to $-$0.250, Zhang-P43 from $-$0.211 to $-$0.271,
+and Zhang-PglVM from $-$0.249 to $-$0.319.
+The deterioration likely reflects overfitting of the fine-tuned output head to spurious
+correlations in the small training folds (64--258 samples per fold),
+compounded by the fundamental biological differences between the Grasso and external experimental systems.
+The high variance across folds (e.g., Wu $\pm$ 0.182, Zhang-P43 $\pm$ 0.183) underscores
+the instability of fine-tuning on limited data.
+Figure~\ref{fig:finetune} visualizes the zero-shot versus fine-tuned performance.
 
 \begin{figure}[H]
     \centering
@@ -510,14 +512,16 @@ The correlations are not merely absent ($\rho \approx 0$) but actively negative,
 A signal peptide optimized for $\beta$-glucuronidase secretion in \textit{B.\ subtilis} may be poorly suited for xylanase production in the same organism, let alone for enzyme secretion in \textit{E.\ coli} or \textit{S.\ cerevisiae}.
 The Zhang cross-promoter analysis provides complementary evidence: the same 114 signal peptides correlate at $r = 0.977$ across two promoters, confirming that signal peptide rankings are partially conserved within a system but not across systems.
 In practice, this means models for signal peptide optimization need to be trained on task-specific data rather than transferred across experimental contexts.
-Fine-tuning the pretrained vector ensemble on target-domain data partially addresses this
-limitation: freezing the learned feature layers and retraining only the output head reverses
-the negative correlations for Wu ($-$0.181 $\to$ $+$0.193) and Xue ($-$0.052 $\to$ $+$0.121),
-demonstrating that the pretrained representations capture transferable signal peptide features
-even when zero-shot predictions are anti-correlated.
-However, the small Zhang datasets (114 samples, $\sim$91 per training fold) do not support
-effective fine-tuning, underscoring that transfer learning for signal peptide efficiency remains
-data-limited.
+Fine-tuning the pretrained vector ensemble on target-domain data provides limited benefit:
+freezing the learned feature layers and retraining only the output head reverses
+the negative correlation only for Wu ($-$0.206 $\to$ $+$0.190), the sole binary-outcome dataset,
+but fails to improve or actively worsens performance on all three continuous datasets
+(Xue: $-$0.129 $\to$ $-$0.250; Zhang-P43: $-$0.211 $\to$ $-$0.271; Zhang-PglVM: $-$0.249 $\to$ $-$0.319).
+Wu's binary labels may be easier to learn from limited data than continuous activity values,
+but even the Wu result has high variance ($\pm$ 0.182) and no individual fold reaches significance.
+These results underscore that transfer learning for signal peptide efficiency remains
+severely data-limited, and that fine-tuning on small datasets risks overfitting rather than recovering
+transferable patterns.
 
 \paragraph{Design Task.}
 Despite the limited cross-dataset transferability, the models still prove useful within the Grasso experimental system.
@@ -552,7 +556,7 @@ The original Grasso train/test partition likely contains overlapping genes (diff
 We have systematically evaluated signal peptide efficiency prediction across four feature representations, two model architectures, and two regression formulations.
 A vector regression neural network with Ginkgo-AA0 embeddings and focal loss achieves MSE 1.001 ($R^2 = 0.790$) with validation-based training.
 Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), improving 23.6\% over the physicochemical baseline of 1.22 and falling 2.2\% below a prior single-model benchmark of 0.953, although the 95\% bootstrap CI [0.823, 1.054] contains the benchmark value and the mean single-seed MSE (0.979) does not surpass it without ensembling.
-Cross-dataset evaluation reveals that zero-shot predictions do not generalize across organisms or experimental systems, but fine-tuning the output head on target-domain data reverses the negative correlations for two of four datasets, suggesting the pretrained representations encode partially transferable signal peptide features.
+Cross-dataset evaluation reveals that zero-shot predictions do not generalize across organisms or experimental systems, but fine-tuning the output head on target-domain data reverses the negative correlation for only one of four datasets (Wu, binary outcome), providing limited evidence that the pretrained representations encode transferable signal peptide features.
 Applied to designed variants using both physicochemical and ESM2-650M features, the models achieve classification accuracy of 72--74\% and Spearman $\rho$ up to 0.395, demonstrating practical utility for guiding experimental prioritization.
 
 Random forests remain competitive and robust across feature types, making them suitable when interpretability or computational efficiency is prioritized.
