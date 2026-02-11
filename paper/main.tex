@@ -30,10 +30,10 @@
 \begin{abstract}
 Signal peptides direct protein secretion in bacteria and are critical targets for optimizing recombinant protein production.
 We present a systematic comparison of machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest (RF) and neural network (NN) regressors across four feature representations: 156 physicochemical descriptors and three protein language model (PLM) embedding sets (ESM2-650M, ESM2-3B, Ginkgo-AA0).
-A vector regression approach, predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}, achieves a test MSE of 1.001 with Ginkgo-AA0 embeddings using an 80/20 validation split.
+A vector regression approach, predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}, achieves a test MSE of 1.001 ($N_{\text{test}} = 1273$) with Ginkgo-AA0 embeddings using an 80/20 validation split.
 Further optimization using full-data training with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), surpassing both the physicochemical baseline of 1.22 \citep{grasso2023} and a prior benchmark of 0.953 (J.\ Schrier, personal communication).
 Cross-dataset evaluation on four external signal peptide datasets reveals significant negative zero-shot Spearman correlations; fine-tuning the output head on target-domain data reverses these for two of four datasets, demonstrating partial transferability of learned representations.
-Applied to 4832 designed signal peptide variants using both physicochemical features and ESM2-650M embeddings, RF and NN models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, with the ESM2-650M NN achieving the highest rank correlation ($\rho = 0.394$), demonstrating practical utility for guiding experimental prioritization.
+Applied to 4832 designed signal peptide variants using both physicochemical features and ESM2-650M embeddings, RF and NN models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\% for ranking variants relative to wild type, with the ESM2-650M NN achieving the highest rank correlation ($\rho = 0.395$), demonstrating practical utility for guiding experimental prioritization.
 \end{abstract}
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -51,6 +51,7 @@ Machine learning offers the potential to predict secretion efficiency from seque
 Recent advances in protein language models (PLMs) provide an alternative to hand-crafted features.
 Models like ESM-2 \citep{lin2023} learn rich representations of protein sequences from evolutionary data, capturing structural and functional information that may not be encoded in traditional descriptors.
 However, effectively leveraging these high-dimensional embeddings (1280--2560 dimensions) requires appropriate model architectures and hyperparameter tuning.
+Existing tools such as SignalP~6.0 \citep{teufel2022} and DeepSig \citep{savojardo2018} predict signal peptide presence and cleavage sites with high accuracy, but they do not predict quantitative secretion efficiency, which is the focus of this work.
 
 In this work, we systematically evaluate signal peptide efficiency prediction across multiple feature representations and model types.
 We identified several methodological considerations in applying machine learning to this problem:
@@ -82,6 +83,7 @@ We evaluate four feature representations:
     \item \textbf{ESM2-650M}: 1280-dimensional mean-pooled embeddings from the 650M-parameter ESM-2 model \citep{lin2023}.
     \item \textbf{ESM2-3B}: 2560-dimensional embeddings from the 3B-parameter ESM-2 model.
     \item \textbf{Ginkgo-AA0}: 1280-dimensional embeddings from Ginkgo Bioworks' AA0 protein language model \citep{ginkgo2024}, trained on proprietary protein sequence data.
+    No peer-reviewed publication describing the model architecture or training data was available at the time of writing.
 \end{itemize}
 
 The PLM datasets contain 3095 training and 1326 test samples (minor differences arise from sequence-level filtering).
@@ -90,7 +92,7 @@ The PLM datasets contain 3095 training and 1326 test samples (minor differences 
 \label{sec:preprocessing}
 
 Features are standardized to zero mean and unit variance using statistics computed on training data only.
-Target skewness is evaluated; log$_{1+x}$ transformation is applied when $|\text{skew}| > 1.0$.
+Target skewness is evaluated; $\log(1+x)$ transformation is applied when $|\text{skew}| > 1.0$.
 For all datasets in this study, skewness was 0.116, so no transformation was applied.
 
 \subsection{Random Forest Models}
@@ -141,16 +143,16 @@ Some sequences exhibit bimodal bin distributions where the WA falls between two 
 \end{figure}
 
 The vector regression architecture uses two hidden layers of 256 units each with LeakyReLU activation and 20\% dropout, followed by a 10-unit output layer with softmax activation to produce a valid probability distribution.
-Unlike the scalar NN (Section~\ref{sec:nn}), batch normalization is omitted.
-Two loss functions are compared: categorical cross-entropy and focal loss \citep{lin2017focal}, defined as $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$ with $\alpha = 0.25$ and $\gamma = 2.0$.
+The architecture follows the design of a Wolfram Language implementation (J.\ Schrier, personal communication), using LeakyReLU rather than ReLU and omitting batch normalization.
+Training uses the Adam optimizer with learning rate $5 \times 10^{-4}$, batch size 32, and up to 200 epochs with early stopping (patience 15) and learning rate reduction on plateau.
+Two loss functions are compared: categorical cross-entropy and focal loss \citep{lin2017focal}, defined as $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$ with $\alpha = 0.25$ and $\gamma = 2.0$, where $p_t$ is the predicted probability assigned to the true bin.
 Focal loss down-weights well-classified examples, encouraging the model to focus on samples with ambiguous bin distributions.
 Each embedding--loss combination is trained as a 5-seed ensemble (Section~\ref{sec:ensemble}).
 After prediction, WA is recovered as $\hat{\text{WA}} = \hat{\mathbf{p}} \cdot [1, 2, \ldots, 10]^\top$.
 
-Rows with missing bin probabilities (27 training, 53 test) are excluded from vector regression training, yielding 3068 training samples.
+Rows with missing bin probabilities (27 training, 53 test, consistent across all three PLM embedding types) are excluded from vector regression training, yielding 3068 training samples.
 The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1273 test samples with complete bin data; the optimized models described below evaluate on all 1326 test samples using WA as the target.
 
-\label{sec:fulldata}
 \paragraph{Architecture and regularization optimization.}
 Because the base vector model (MSE 1.001) still falls short of the 0.953 benchmark obtained by Schrier using a similar architecture, we explore whether removing the validation split and compensating with explicit regularization can close this gap.
 Training on all 3068 samples with a fixed epoch budget of 300 and no early stopping removes the regularization signal provided by validation-based stopping, so we rely instead on dropout tuning and architectural depth to control overfitting.
@@ -171,7 +173,7 @@ Each 5-seed ensemble uses seeds $\{42, 123, 456, 789, 1024\}$ with independent r
 The results above demonstrate strong predictive performance within the Grasso dataset, but a model's practical value depends on whether it transfers to new experimental contexts.
 To evaluate this, we test the best ESM2-650M RF and the 5-seed NN ensemble on four external datasets:
 \begin{itemize}
-    \item \textbf{Wu} \citep{wu2020}: 81 signal peptides in \textit{E.\ coli} with binary secretion labels.
+    \item \textbf{Wu} \citep{wu2020}: 81 signal peptides in \textit{E.\ coli} with binary secretion outcomes (functional/non-functional).
     \item \textbf{Xue} \citep{xue2023}: 322 signal peptides in \textit{S.\ cerevisiae} with enzyme activity measurements.
     \item \textbf{Zhang-P43 / Zhang-PglVM} \citep{zhang2016}: 114 signal peptides in \textit{B.\ subtilis} measured under two different promoters.
 \end{itemize}
@@ -184,9 +186,10 @@ we fine-tune a vector regression ensemble with the same optimized architecture
 (focal loss, (256, 256, 128), dropout 0.35) but trained on ESM2-650M embeddings,
 since Ginkgo-AA0 embeddings are not available for external sequences.
 Fine-tuning uses 5-fold cross-validation with 5 random seeds per fold.
-The pretrained model's first two hidden blocks (6 layers) are frozen, and the 10-unit softmax
-output head is replaced with a task-specific head: a single sigmoid unit for the binary Wu dataset,
+The pretrained model's first two hidden blocks (6 layers) are frozen; the third hidden block and the 10-unit softmax
+output head are replaced with a task-specific head: a single sigmoid unit for the binary Wu dataset,
 or a single linear unit for the continuous datasets (Xue, Zhang-P43, Zhang-PglVM).
+Features are standardized using statistics from the Grasso training set, ensuring the frozen pretrained layers receive inputs with the same distribution as during pretraining.
 Fine-tuning uses a reduced learning rate ($10^{-4}$, 5$\times$ lower than pretraining),
 batch size 32, up to 100 epochs with early stopping (patience 10), and MSE loss
 (binary cross-entropy for Wu). Spearman $\rho$ is averaged across folds.
@@ -313,13 +316,14 @@ Table~\ref{tab:fulldata} presents results from the full-data optimization descri
 
 \begin{table}[H]
 \centering
-\caption{Full-data vector regression optimization ($N_{\text{train}} = 3068$, $N_{\text{test}} = 1326$, Ginkgo-AA0 + focal loss). All results are 5-seed ensembles except where noted.}
+\caption{Full-data vector regression optimization ($N_{\text{train}} = 3068$, $N_{\text{test}} = 1326$, Ginkgo-AA0 + focal loss). All results are 5-seed ensembles except where noted. Only MSE is reported for intermediate configurations; full metrics are reported for the best model.}
 \label{tab:fulldata}
 \begin{tabular}{llcccc}
 \toprule
 Phase & Configuration & Dropout & Test MSE & Test $R^2$ & Spearman $\rho$ \\
 \midrule
-\multirow{3}{*}{Dropout}
+\multirow{4}{*}{Dropout}
+ & (256, 256, 128), drop = 0.20 & 0.20 & 0.993 & --- & --- \\
  & (256, 256, 128), drop = 0.25 & 0.25 & 0.971 & --- & --- \\
  & (256, 256, 128), drop = 0.30 & 0.30 & 0.940 & --- & --- \\
  & (256, 256, 128), drop = 0.35 & 0.35 & \textbf{0.932} & \textbf{0.804} & \textbf{0.873} \\
@@ -336,6 +340,7 @@ Mixed & 3-arch $\times$ 5-seed (15 models) & --- & 0.967 & --- & --- \\
 Dropout tuning produces the largest gains: increasing dropout from 0.20 to 0.35 on the (256, 256, 128) architecture reduces ensemble MSE from 0.993 to 0.932, indicating that the base configuration was under-regularized.
 The best result, MSE 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), surpasses the prior benchmark of 0.953 by 2.2\%.
 Bootstrap 95\% confidence intervals for this model are [0.823, 1.054] for MSE and [0.857, 0.887] for Spearman $\rho$ (Appendix~\ref{app:bootstrap}).
+However, the 95\% bootstrap CI [0.823, 1.054] contains the benchmark value of 0.953, so the improvement, while consistent across seeds, is not statistically significant at the 95\% level.
 Four-layer architectures and mixed-architecture ensembles also beat the 0.953 benchmark but do not surpass the dropout-tuned 3-layer model.
 Increasing to 20-seed ensembles does not improve over 5-seed, suggesting diminishing returns from additional ensemble members.
 
@@ -344,7 +349,7 @@ Figure~\ref{fig:ensemble_opt} shows the full optimization landscape.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/vector_ensemble_optimization.png}
-    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates the prior benchmark of 0.953; the dashed grey line shows the Script~09 best (0.973).}
+    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates the prior benchmark of 0.953; the dashed grey line shows the initial architecture search best (0.973).}
     \label{fig:ensemble_opt}
 \end{figure}
 
@@ -355,7 +360,7 @@ Table~\ref{tab:cross} summarizes cross-dataset performance for the best ESM2-650
 
 \begin{table}[H]
 \centering
-\caption{Cross-dataset generalization. Models trained on Grasso data are evaluated on four external datasets. All Spearman correlations are significantly negative.}
+\caption{Cross-dataset generalization. Models trained on Grasso data are evaluated on four external datasets. All Spearman correlations are negative; see text for multiple-testing correction.}
 \label{tab:cross}
 \begin{tabular}{lrcrcr}
 \toprule
@@ -370,7 +375,7 @@ Zhang-PglVM & 114 & $-$0.250 & (0.007) & $-$0.213 & (0.023) \\
 \end{table}
 
 All four external datasets yield statistically significant negative Spearman correlations for both RF and NN models.
-For the Zhang datasets, where the same 114 signal peptides are measured under two promoters (P43 and PglVM), the model predictions achieve perfect rank consistency between the two promoter conditions (consistency = 1.000), while the actual WA measurements correlate at $r = 0.977$ across promoters.
+For the Zhang datasets, where the same 114 signal peptides are measured under two promoters (P43 and PglVM), because the model receives no promoter information, it assigns identical predictions to the same 114 sequences under both conditions, yielding trivially perfect rank consistency; the actual WA measurements correlate at $r = 0.977$ across promoters, indicating that signal peptide rankings are largely conserved within a host.
 Figure~\ref{fig:cross} visualizes the cross-dataset evaluation.
 
 \begin{figure}[H]
@@ -383,7 +388,9 @@ Figure~\ref{fig:cross} visualizes the cross-dataset evaluation.
 \paragraph{Fine-tuning results.}
 Given the uniformly negative zero-shot correlations, we next test whether fine-tuning
 the pretrained vector ensemble can recover positive transfer.
-Table~\ref{tab:finetune} compares zero-shot and fine-tuned performance on each external dataset.
+Table~\ref{tab:finetune} compares zero-shot and fine-tuned performance of the ESM2-650M
+vector regression ensemble on each external dataset; the zero-shot values differ from
+Table~\ref{tab:cross} because they come from the vector ensemble rather than the scalar RF/NN models.
 
 \begin{table}[H]
 \centering
@@ -436,8 +443,8 @@ Table~\ref{tab:design} summarizes model performance on ranking 4832 designed sig
 \toprule
 Features & Model & Spearman $\rho$ & Pearson $r$ & MSE & ClassAcc (\%) \\
 \midrule
-ESM2-650M (1280d) & NN & \textbf{0.394} & \textbf{0.406} & 4.03 & 71.7 \\
-PhysChem (156d) & NN & 0.386 & 0.400 & \textbf{3.99} & 72.0 \\
+ESM2-650M (1280d) & NN & \textbf{0.395} & \textbf{0.407} & \textbf{4.02} & 71.8 \\
+PhysChem (156d) & NN & 0.380 & 0.383 & 4.08 & 72.8 \\
 PhysChem (156d) & RF & 0.369 & 0.378 & 4.07 & \textbf{74.2} \\
 ESM2-650M (1280d) & RF & 0.363 & 0.367 & 4.15 & 72.9 \\
 \bottomrule
@@ -445,8 +452,8 @@ ESM2-650M (1280d) & RF & 0.363 & 0.367 & 4.15 & 72.9 \\
 \end{table}
 
 All four models achieve Spearman correlations above 0.36 and classification accuracy above 71\%, with all correlations significant at $p < 10^{-150}$.
-The ESM2-650M NN achieves the highest rank correlation ($\rho = 0.394$), slightly outperforming the PhysChem NN (0.386), PhysChem RF (0.369), and ESM2-650M RF (0.363).
-RF models achieve marginally better classification accuracy (74.2\% PhysChem, 72.9\% ESM2-650M) than NNs (71.7--72.0\%).
+The ESM2-650M NN achieves the highest rank correlation ($\rho = 0.395$), outperforming the PhysChem NN (0.380), PhysChem RF (0.369), and ESM2-650M RF (0.363).
+RF models achieve marginally better classification accuracy (74.2\% PhysChem, 72.9\% ESM2-650M) than NNs (71.8--72.8\%).
 The improvement from ESM2-650M over PhysChem features is modest for the design task, consistent with the smaller RF--NN gap observed for scalar regression (Section~\ref{sec:results}).
 Figure~\ref{fig:design} shows the design task results.
 
@@ -464,11 +471,11 @@ Figure~\ref{fig:design} shows the design task results.
 \paragraph{Model--Representation Interaction.}
 The central finding of the scalar regression analysis is a pronounced interaction between model architecture and feature representation.
 Random forests show minimal sensitivity to input type; all four feature sets produce similar MSE values (1.16--1.25).
-Neural networks, in contrast, exhibit a 27\% performance gap between the best (Ginkgo-AA0, MSE 1.050) and worst (PhysChem, MSE 1.328) feature types.
+Neural networks, in contrast, exhibit a 26\% performance gap between the best (Ginkgo-AA0, MSE 1.050) and worst (PhysChem, MSE 1.328) feature types.
 
 This pattern suggests that RF's built-in feature selection (via random subspace sampling) provides robustness to uninformative dimensions but limits the model's ability to exploit complex feature interactions.
 Neural networks can learn nonlinear combinations of PLM embedding dimensions that capture secretion-relevant information, but require sufficient input richness to outperform simpler methods.
-The poor performance of NN on physicochemical features (MSE 1.328) deserves a closer look.
+The poor performance of NN on physicochemical features (MSE 1.328) likely reflects a dimensionality mismatch.
 With only 156 input dimensions and $\sim$3000 training samples, the neural network may lack sufficient signal to learn useful representations beyond what the RF already captures through axis-aligned splits.
 The higher capacity of the NN becomes a liability rather than an asset in this low-dimensional regime.
 
@@ -489,9 +496,11 @@ However, the vector and scalar NNs also differ in activation function (LeakyReLU
 With an 80/20 validation split, the best vector model achieves MSE 1.001, above the 0.953 obtained using a near-identical architecture (same embedding, hidden sizes, dropout, and focal loss; Schrier uses parametric ReLU vs.\ our LeakyReLU) implemented in Wolfram Language (J.\ Schrier, personal communication).
 Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) yields a 5-seed ensemble MSE of 0.932 (Section~\ref{sec:fulldata_results}), surpassing that benchmark by 2.2\%.
 The key improvements are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
+The 0.953 benchmark was obtained from a single model; our 0.932 result uses a 5-seed ensemble, which inherently reduces prediction variance.
+Individual seed MSEs for the best configuration range from 0.950 to 1.023, so only one of five seeds individually surpasses 0.953, and the improvement partly reflects the ensembling benefit.
 
 \paragraph{Cross-Dataset Generalization.}
-While these improvements are substantial within the Grasso dataset, the cross-dataset results paint a different picture.
+While these improvements are substantial within the Grasso dataset, the cross-dataset results reveal a significant limitation.
 The consistently negative Spearman correlations across all four external datasets are worth examining, though not entirely unexpected.
 Signal peptide efficiency depends on the cargo protein, promoter, host organism, and growth conditions, all of which differ fundamentally between datasets.
 The correlations are not merely absent ($\rho \approx 0$) but actively negative, suggesting that the sequence features associated with high secretion in the Grasso system are associated with low performance in other contexts, possibly because the model has learned host- or cargo-specific signal patterns that are maladaptive elsewhere.
@@ -510,7 +519,7 @@ data-limited.
 \paragraph{Design Task.}
 Despite the limited cross-dataset transferability, the models still prove useful within the Grasso experimental system.
 The design task demonstrates that models trained on characterized variants can meaningfully rank novel designed signal peptides, with Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\%, well above the 50\% random baseline.
-Generating ESM2-650M embeddings for the design variants and evaluating all four model--feature combinations reveals that the ESM2-650M NN achieves the highest rank correlation ($\rho = 0.394$), though the improvement over PhysChem features is modest (0.394 vs.\ 0.386 for NN, 0.363 vs.\ 0.369 for RF).
+Generating ESM2-650M embeddings for the design variants and evaluating all four model--feature combinations reveals that the ESM2-650M NN achieves the highest rank correlation ($\rho = 0.395$), though the improvement over PhysChem features is modest (0.395 vs.\ 0.380 for NN, 0.363 vs.\ 0.369 for RF).
 This contrasts with the larger PLM advantage observed in the scalar regression task, suggesting that the design task's evaluation structure (per-gene ranking rather than absolute WA prediction) may limit the benefit of richer representations.
 The moderate but significant correlations suggest that these models can serve as a practical filter for prioritizing candidates in experimental screening campaigns.
 
@@ -519,17 +528,19 @@ Several caveats apply to these findings.
 The RF and NN hyperparameter searches used different validation strategies (5-fold CV vs.\ single train/val split), which may introduce some asymmetry in the comparison.
 The dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme.
 While full-data training with optimized regularization (MSE 0.932) surpasses the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping.
-To verify that the dropout selection is not an artifact of test-set model selection, we repeated the dropout sweep with an independent 80/20 train/validation split (Appendix~\ref{app:dropout_val}).
-Validation MSE decreases from 1.384 at dropout 0.15 to 1.341 at dropout 0.30, confirming that higher dropout improves generalization; the validation-optimal (0.30) and test-optimal (0.35) dropouts are adjacent and statistically indistinguishable on held-out data.
+The final dropout of 0.35 was selected based on test-set MSE, constituting a form of test-set model selection.
+Appendix~\ref{app:dropout_val} shows that all dropout values $\geq 0.20$ produce statistically indistinguishable validation MSE, so the test-optimal choice is not contradicted by validation data, but neither is it uniquely supported.
+Validation MSE improves from 1.375 at dropout 0.15 to 1.333--1.347 for all dropout rates $\geq 0.20$, with no statistically significant differences among them (all within seed-to-seed variability of $\pm$0.07--0.09); the test-optimal dropout (0.35) produces a validation MSE of 1.347 $\pm$ 0.072, indistinguishable from the validation-optimal (0.20, MSE 1.333 $\pm$ 0.084).
 The differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
 The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), three of the four NN correlations and two of the four RF correlations no longer reach significance. The Wu and Xue datasets retain significant RF correlations, and only Xue retains a significant NN correlation.
-The vector regression architecture uses LeakyReLU activation and omits batch normalization,
-while the scalar NN uses ReLU with batch normalization; a systematic ablation of these
+The vector regression architecture uses LeakyReLU activation, omits batch normalization, and does not apply L2 kernel regularization,
+while the scalar NN uses ReLU with batch normalization and L2 regularization; a systematic ablation of these
 architectural differences was not performed, so the vector regression improvement cannot
 be attributed solely to the distributional output.
 Ginkgo-AA0 embeddings, which yielded the best results across all tasks, were only
 available for the Grasso dataset; cross-dataset and fine-tuning evaluations use ESM2-650M
 embeddings, so the actual transferability of Ginkgo-AA0 representations remains untested.
+The original Grasso train/test partition likely contains overlapping genes (different signal peptide variants for the same cargo protein in both sets), meaning the model may partly learn gene-specific patterns rather than generalizable signal peptide features; a gene-stratified evaluation was not performed.
 
 % ══════════════════════════════════════════════════════════════════════════
 \section{Conclusion}
@@ -539,7 +550,7 @@ We have systematically evaluated signal peptide efficiency prediction across fou
 A vector regression neural network with Ginkgo-AA0 embeddings and focal loss achieves MSE 1.001 ($R^2 = 0.790$) with validation-based training.
 Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), improving 23.6\% over the physicochemical baseline of 1.22 and surpassing the prior benchmark of 0.953 by 2.2\%.
 Cross-dataset evaluation reveals that zero-shot predictions do not generalize across organisms or experimental systems, but fine-tuning the output head on target-domain data reverses the negative correlations for two of four datasets, suggesting the pretrained representations encode partially transferable signal peptide features.
-Applied to designed variants using both physicochemical and ESM2-650M features, the models achieve classification accuracy of 72--74\% and Spearman $\rho$ up to 0.394, demonstrating practical utility for guiding experimental prioritization.
+Applied to designed variants using both physicochemical and ESM2-650M features, the models achieve classification accuracy of 72--74\% and Spearman $\rho$ up to 0.395, demonstrating practical utility for guiding experimental prioritization.
 
 Random forests remain competitive and robust across feature types, making them suitable when interpretability or computational efficiency is prioritized.
 These results demonstrate that realizing the potential of protein language models for biological prediction tasks requires appropriate model architectures; simply replacing hand-crafted features with PLM embeddings does not guarantee improvement.
@@ -563,7 +574,7 @@ All analysis code and results are available at \url{https://github.com/Mehak-W/s
 \section{Hyperparameter Search Results}
 \label{app:hyperparam}
 
-Tables~\ref{tab:rf_trials} and \ref{tab:nn_trials} report the top-10 configurations per feature type from the randomized hyperparameter searches (100 RF configs with 5-fold CV; 40 NN configs with 80/20 validation split).
+Tables~\ref{tab:rf_trials} and \ref{tab:nn_trials} report the top-5 configurations per feature type from the randomized hyperparameter searches (100 RF configs with 5-fold CV; 40 NN configs with 80/20 validation split).
 Full trial data are available in the GitHub repository.
 
 \begin{table}[H]
@@ -654,7 +665,7 @@ Table~\ref{tab:vector_seeds} reports the per-seed test MSE for all six embedding
 
 \begin{table}[H]
 \centering
-\caption{Per-seed test MSE for vector regression models. Each model uses the same architecture (2$\times$256 hidden units, LeakyReLU, 20\% dropout, softmax output) with 5 random seeds for train/validation splitting.}
+\caption{Per-seed test MSE for vector regression models. Each model uses the base architecture (2$\times$256 hidden units, LeakyReLU, 20\% dropout, softmax output) with 5 random seeds for train/validation splitting.}
 \label{tab:vector_seeds}
 \begin{tabular}{llcccccr}
 \toprule
@@ -674,7 +685,7 @@ ESM2-3B & Focal & 1.215 & 1.220 & 1.185 & 1.226 & 1.193 & 1.117 \\
 \section{Architecture Search Landscape}
 \label{app:arch_search}
 
-Figure~\ref{fig:arch_search} shows the full architecture search landscape from the initial full-data vector regression exploration (Script~09), which identified the (256, 256, 128) three-layer architecture as the top performer prior to the dropout and ensemble optimization in Section~\ref{sec:fulldata_results}.
+Figure~\ref{fig:arch_search} shows the full architecture search landscape from the initial full-data vector regression exploration, which identified the (256, 256, 128) three-layer architecture as the top performer prior to the dropout and ensemble optimization in Section~\ref{sec:fulldata_results}.
 
 \begin{figure}[H]
     \centering
@@ -726,6 +737,8 @@ Vec Ginkgo-AA0 focal$^\dagger$ & \textbf{0.932} & [0.823, 1.054] & \textbf{0.804
 \end{tabular}
 \end{table}
 
+Figure~\ref{fig:forest_plot} presents these intervals as a forest plot, showing the relative performance and uncertainty of all 16 models.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/bootstrap_forest_plot.png}
@@ -739,18 +752,18 @@ Vec Ginkgo-AA0 focal$^\dagger$ & \textbf{0.932} & [0.823, 1.054] & \textbf{0.804
 
 To confirm that the dropout selection in Section~\ref{sec:fulldata_results} is not an artifact of test-set model selection, we repeated the dropout sweep using an independent 80/20 train/validation split from the training data.
 For each dropout rate in $\{0.15, 0.20, 0.25, 0.30, 0.35\}$, we trained 5-seed ensembles on 80\% of the training data and evaluated on the held-out 20\% validation set.
-The same (256, 256, 128) architecture, focal loss, and training protocol from Script~10 were used.
+The same (256, 256, 128) architecture, focal loss, and training protocol from Section~\ref{sec:fulldata_results} were used.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{../figures/dropout_validation.png}
-    \caption{Dropout validation: MSE on held-out validation data (80/20 split, blue) versus test data (full-data training from Script~10, orange). Both curves show the same general trend: increasing dropout from the base rate of 0.20 improves performance. Error bars on validation MSE represent standard deviation across 5 seeds. Absolute validation MSE is higher because models train on only 80\% of the data.}
+    \caption{Dropout validation: MSE on held-out validation data (80/20 split, blue) versus test data (full-data training from Section~\ref{sec:fulldata_results}, orange). The validation curve is essentially flat for dropout $\geq 0.20$, while the test curve shows clearer improvement at higher dropout. Error bars on validation MSE represent standard deviation across 5 seeds. Absolute validation MSE is higher because models train on only 80\% of the data.}
     \label{fig:dropout_val}
 \end{figure}
 
-As shown in Figure~\ref{fig:dropout_val}, validation MSE decreases from 1.384 (dropout 0.15) to 1.341 (dropout 0.30), confirming that increased dropout improves generalization.
-The validation-optimal dropout (0.30) and the test-optimal dropout (0.35) are adjacent values whose validation MSEs (1.341 $\pm$ 0.074 vs.\ 1.353 $\pm$ 0.069) are well within each other's standard deviations.
-This supports the conclusion that the improvement from increased dropout reflects a genuine regularization effect rather than test-set overfitting.
+As shown in Figure~\ref{fig:dropout_val}, validation MSE drops from 1.375 at dropout 0.15 to a minimum of 1.333 at dropout 0.20, then remains between 1.338 and 1.352 for dropout 0.25--0.35; all values at dropout $\geq 0.20$ are within seed-to-seed variability ($\pm$0.07--0.09).
+The test-optimal dropout (0.35, validation MSE 1.347 $\pm$ 0.072) and the validation-optimal (0.20, 1.333 $\pm$ 0.084) are statistically indistinguishable, as are all intermediate values.
+This supports the conclusion that dropout values in the range 0.20--0.35 produce equivalent generalization performance, and the test-optimal choice of 0.35 is not contradicted by the validation data.
 The higher absolute MSE on validation (${}\sim$1.35 vs.\ ${}\sim$0.93 on test) is expected because validation models train on only 80\% of the data (2454 vs.\ 3068 samples).
 
 \end{document}

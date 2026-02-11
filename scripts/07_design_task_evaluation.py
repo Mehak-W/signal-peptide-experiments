@@ -78,11 +78,11 @@ BEST_ESM_RF_PARAMS = dict(
 
 # Best PhysChem NN hyperparameters (from Script 03)
 BEST_NN_PARAMS = dict(
-    hidden_layers=(128, 64),
+    hidden_layers=(256, 128),
     dropout=0.3,
-    l2_reg=1e-3,
+    l2_reg=0.01,
     learning_rate=1e-3,
-    batch_size=32,
+    batch_size=64,
     epochs=200,
 )
 

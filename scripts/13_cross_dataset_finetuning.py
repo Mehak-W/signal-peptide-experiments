@@ -313,10 +313,10 @@ def run_finetuning_cv(pretrained_models, scaler_grasso, dataset_name, spec):
         X_tr, y_tr = X_ext[train_idx], y_ext[train_idx]
         X_te, y_te = X_ext[test_idx], y_ext[test_idx]
 
-        # Per-fold scaler (fit on external training fold only)
-        scaler_fold = StandardScaler()
-        X_tr_scaled = scaler_fold.fit_transform(X_tr)
-        X_te_scaled = scaler_fold.transform(X_te)
+        # Scale using Grasso training statistics so frozen pretrained layers
+        # receive inputs with the same distribution as during pretraining
+        X_tr_scaled = scaler_grasso.transform(X_tr)
+        X_te_scaled = scaler_grasso.transform(X_te)
 
         # Fine-tune each pretrained seed model
         fold_preds = []
