@@ -16,32 +16,6 @@
       "peak2_prob": 0.14593770016756,
       "separation": 4,
       "n_substantial": 9
-    },
-    {
-      "idx": 3419,
-      "gene": "phrC",
-      "sp_aa": "MKLKSKLFVICLAAAAIFRKKKVSANAEALDF",
-      "wa": 6.31863812439179,
-      "wa_prob": 0.122786033864458,
-      "peak1_bin": 2,
-      "peak1_prob": 0.214967045087749,
-      "peak2_bin": 8,
-      "peak2_prob": 0.21479223690835,
-      "separation": 6,
-      "n_substantial": 8
-    },
-    {
-      "idx": 9974,
-      "gene": "cwlS",
-      "sp_aa": "MSSGIIVAGLAVSAVVGSSMAAAPAEAKTI",
-      "wa": 6.5650814512359,
-      "wa_prob": 0.063510710445977,
-      "peak1_bin": 10,
-      "peak1_prob": 0.264173644333586,
-      "peak2_bin": 4,
-      "peak2_prob": 0.204645471789127,
-      "separation": 6,
-      "n_substantial": 8
     }
   ]
 }
