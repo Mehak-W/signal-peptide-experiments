@@ -133,16 +133,14 @@ def main():
         ax.scatter(y_true, y_pred, alpha=0.3, s=10, color='steelblue')
         lims = [min(y_true.min(), y_pred.min()) - 0.5,
                 max(y_true.max(), y_pred.max()) + 0.5]
-        ax.plot(lims, lims, 'r--', lw=1, label='Perfect prediction')
+        ax.plot(lims, lims, 'r--', lw=1)
         ax.set_xlim(lims)
         ax.set_ylim(lims)
         ax.set_xlabel('Actual WA')
         ax.set_ylabel('Predicted WA')
-        m = compute_metrics(y_true, y_pred)
-        ax.set_title(f'{title} (MSE={m["mse"]:.3f}, R²={m["r2"]:.3f})')
-        ax.legend(loc='upper left', fontsize=8)
+        ax.text(0.05, 0.95, title, transform=ax.transAxes,
+                fontsize=10, va='top')
 
-    fig.suptitle('Grasso RF Reproduction — Predicted vs Actual WA', fontsize=13)
     plt.tight_layout()
 
     fig_path = FIGURES_DIR / 'grasso_reproduction.png'

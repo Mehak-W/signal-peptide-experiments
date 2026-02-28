@@ -322,16 +322,15 @@ def make_forest_plot(results, model_order):
                 markersize=7, zorder=2)
 
     # Reference lines
-    ax.axvline(x=1.22, color='red', linestyle='--', linewidth=1.2,
-               label='Grasso baseline (1.22)', zorder=0)
-    ax.axvline(x=0.95, color='green', linestyle=':', linewidth=1.2,
-               label='Dr. Schrier Benchmark (0.95)', zorder=0)
+    ax.axvline(x=1.22, color='red', linestyle='--', linewidth=1.0, alpha=0.8,
+               label='Baseline (1.22)', zorder=0)
+    ax.axvline(x=0.95, color='green', linestyle=':', linewidth=1.0, alpha=0.8,
+               label='Benchmark (0.953)', zorder=0)
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels, fontsize=9)
     ax.invert_yaxis()
     ax.set_xlabel('Test MSE')
-    ax.set_title('Bootstrap 95% Confidence Intervals for Test MSE')
 
     # Custom legend
     from matplotlib.lines import Line2D
@@ -340,8 +339,8 @@ def make_forest_plot(results, model_order):
                markersize=7, linewidth=2),
         Line2D([0], [0], marker='o', color='darkorange', label='Vector models',
                markersize=7, linewidth=2),
-        Line2D([0], [0], color='red', linestyle='--', label='Grasso baseline (1.22)'),
-        Line2D([0], [0], color='green', linestyle=':', label='Dr. Schrier Benchmark (0.95)'),
+        Line2D([0], [0], color='red', linestyle='--', label='Baseline (1.22)'),
+        Line2D([0], [0], color='green', linestyle=':', label='Benchmark (0.953)'),
     ]
     ax.legend(handles=legend_elements, loc='lower right', fontsize=9)
 

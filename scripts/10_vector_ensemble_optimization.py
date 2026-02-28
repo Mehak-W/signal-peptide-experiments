@@ -488,21 +488,15 @@ def _make_figure(results):
     x = np.arange(len(labels))
     bars = ax.bar(x, mses, color=colors, alpha=0.85)
 
-    ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=2,
-               label=f'Dr. Schrier ({SCHRIER_MSE})')
-    ax.axhline(y=SCRIPT09_BEST, color='gray', linestyle='--', linewidth=1.2,
-               label=f'Script 09 best ({SCRIPT09_BEST})')
+    ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=1.0, alpha=0.8,
+               label=f'Benchmark ({SCHRIER_MSE})')
+    ax.axhline(y=SCRIPT09_BEST, color='gray', linestyle='--', linewidth=1.0, alpha=0.8,
+               label=f'Arch search best ({SCRIPT09_BEST})')
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=7)
     ax.set_ylabel('Test MSE (all 1326 samples)')
-    ax.set_title('Vector Ensemble Optimization: Dropout and Architecture Tuning')
     ax.legend(loc='lower right')
-
-    for bar in bars:
-        h = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2., h + 0.002,
-                f'{h:.3f}', ha='center', va='bottom', fontsize=7)
 
     plt.tight_layout()
     fig_path = FIGURES_DIR / 'vector_ensemble_optimization.png'

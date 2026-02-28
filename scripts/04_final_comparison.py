@@ -143,27 +143,19 @@ def plot_grouped_bar(df, save_path):
 
         offset = (i - n_models / 2 + 0.5) * bar_width
         bars = ax.bar(x + offset, mse_values, bar_width * 0.9,
-                      label=model, color=colors[i % len(colors)], edgecolor='white', linewidth=0.5)
-
-        # Add value labels on bars
-        for bar, val in zip(bars, mse_values):
-            if val > 0:
-                ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.02,
-                        f'{val:.3f}', ha='center', va='bottom', fontsize=7, rotation=0)
+                      label=model, color=colors[i % len(colors)], edgecolor='none')
 
     # Grasso baseline line
-    ax.axhline(y=GRASSO_BASELINE_MSE, color='red', linestyle='--', linewidth=1.5,
-               label=f'Grasso baseline (MSE={GRASSO_BASELINE_MSE})')
+    ax.axhline(y=GRASSO_BASELINE_MSE, color='red', linestyle='--', linewidth=1.0,
+               alpha=0.8, label=f'Grasso baseline ({GRASSO_BASELINE_MSE})')
 
     ax.set_xlabel('Feature Type', fontsize=12)
     ax.set_ylabel('Test MSE', fontsize=12)
-    ax.set_title('Signal Peptide Prediction: Model Comparison Across Feature Types', fontsize=13)
     ax.set_xticks(x)
     ax.set_xticklabels(feature_types, fontsize=10)
     ax.legend(loc='upper right', fontsize=9)
     # Start y-axis at 0.95 to emphasize meaningful differences
     ax.set_ylim(0.95, max(df['Test MSE'].max() * 1.05, GRASSO_BASELINE_MSE * 1.15))
-    ax.grid(axis='y', alpha=0.3)
 
     plt.tight_layout()
     fig.savefig(save_path, dpi=300, bbox_inches='tight')

@@ -495,7 +495,7 @@ def _make_figure(df_design, df_design_esm, results, wt_wa_map):
         ax.set_xlabel('Actual WA')
         ax.set_ylabel('Predicted WA')
         panel_letter = 'A' if row_idx == 0 else 'D'
-        ax.set_title(f'({panel_letter}) {feat_type}: Predicted vs Actual WA')
+        ax.set_title(f'({panel_letter}) Predicted vs Actual WA')
         ax.legend(fontsize=8)
 
         # ── Panel B: Per-gene Spearman bar chart (top 15) ──────────────────
@@ -523,7 +523,7 @@ def _make_figure(df_design, df_design_esm, results, wt_wa_map):
             ax.set_xticklabels(genes, rotation=45, ha='right', fontsize=7)
             ax.set_ylabel('Spearman Rank Correlation')
             panel_letter = 'B' if row_idx == 0 else 'E'
-            ax.set_title(f'({panel_letter}) {feat_type}: Per-Gene Ranking (top 15)')
+            ax.set_title(f'({panel_letter}) Per-Gene Ranking (top 15)')
             ax.legend(fontsize=8)
             ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
 
@@ -546,17 +546,15 @@ def _make_figure(df_design, df_design_esm, results, wt_wa_map):
             ax.set_xticklabels(genes_with_wt, rotation=45, ha='right', fontsize=7)
             ax.set_ylabel('Classification Accuracy')
             panel_letter = 'C' if row_idx == 0 else 'F'
-            ax.set_title(f'({panel_letter}) {feat_type}: Better/Worse than WT')
+            ax.set_title(f'({panel_letter}) Better/Worse than WT')
             ax.legend(fontsize=8)
-            ax.axhline(y=0.5, color='gray', linewidth=0.8, linestyle='--')
             ax.set_ylim(0, 1.05)
         else:
             panel_letter = 'C' if row_idx == 0 else 'F'
             ax.text(0.5, 0.5, 'No genes with WT WA\navailable for classification',
                     ha='center', va='center', transform=ax.transAxes, fontsize=11)
-            ax.set_title(f'({panel_letter}) {feat_type}: Better/Worse than WT')
+            ax.set_title(f'({panel_letter}) Better/Worse than WT')
 
-    fig.suptitle('Design Task Evaluation: Predicting Mutation Effects', fontsize=13)
     plt.tight_layout()
 
     fig_path = FIGURES_DIR / 'design_task_evaluation.png'

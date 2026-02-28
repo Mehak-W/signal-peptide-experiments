@@ -255,25 +255,14 @@ def _make_figure(results):
 
     ax.errorbar(drops, val_mses, yerr=val_stds, marker='o', capsize=5,
                 linewidth=2, markersize=8, color='steelblue',
-                label='Validation MSE (80/20 split)')
+                label='Validation MSE')
     ax.plot(drops, test_mses, marker='s', linewidth=2, markersize=8,
-            color='darkorange', label='Test MSE (Script 10, full-data)')
-
-    # Annotate values
-    for i, d in enumerate(drops):
-        ax.annotate(f'{val_mses[i]:.3f}', (d, val_mses[i]),
-                    textcoords='offset points', xytext=(0, 12),
-                    ha='center', fontsize=9, color='steelblue')
-        ax.annotate(f'{test_mses[i]:.3f}', (d, test_mses[i]),
-                    textcoords='offset points', xytext=(0, -16),
-                    ha='center', fontsize=9, color='darkorange')
+            color='darkorange', label='Test MSE')
 
     ax.set_xlabel('Dropout Rate', fontsize=12)
     ax.set_ylabel('MSE', fontsize=12)
-    ax.set_title('Dropout Selection Validation: Held-Out vs Test Performance')
     ax.set_xticks(drops)
     ax.legend(loc='upper right', fontsize=10)
-    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     fig_path = FIGURES_DIR / 'dropout_validation.png'

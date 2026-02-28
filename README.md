@@ -1,6 +1,6 @@
 # Signal Peptide Efficiency Prediction
 
-Systematic evaluation of machine learning models for predicting signal peptide secretion efficiency in *Bacillus subtilis*, comparing random forest and neural network regressors across physicochemical and protein language model (PLM) feature representations. A vector regression approach with optimized regularization achieves a 5-seed ensemble MSE of **0.932** [0.823, 1.054] (95% bootstrap CI), surpassing both the physicochemical baseline of 1.22 and a prior benchmark of 0.953.
+We compare random forest and neural network regressors for predicting signal peptide secretion efficiency in *Bacillus subtilis*, using physicochemical descriptors and three protein language model (PLM) embedding sets. Predicting full 10-bin probability distributions instead of scalar activity values, combined with dropout tuning and multi-seed ensembling, yields a test MSE of **0.932** [0.823, 1.054] (95% bootstrap CI) — a 23.6% improvement over the physicochemical baseline (1.22) and 2.2% over a prior benchmark (0.953). Fine-tuning on external datasets reverses negative zero-shot correlations for 2 of 4 datasets, suggesting partial transferability of learned representations.
 
 ## Key Results
 

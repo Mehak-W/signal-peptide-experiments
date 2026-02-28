@@ -398,47 +398,29 @@ def make_figure(all_results, save_path):
     width = 0.35
 
     bars_zs = ax.bar(x - width/2, zs_spearman, width, label='Zero-shot',
-                     color='steelblue', alpha=0.85)
+                     color='steelblue', alpha=0.85, edgecolor='none')
     bars_ft = ax.bar(x + width/2, ft_spearman, width, yerr=ft_std,
                      label='Fine-tuned (5-fold CV)', color='forestgreen',
-                     alpha=0.85, capsize=4)
+                     alpha=0.85, capsize=4, edgecolor='none')
 
     ax.set_ylabel('Spearman ρ')
-    ax.set_title('(A) Zero-Shot vs Fine-Tuned')
     ax.set_xticks(x)
     ax.set_xticklabels(datasets, rotation=15, ha='right')
     ax.legend(fontsize=9)
     ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
-
-    for bar in list(bars_zs) + list(bars_ft):
-        height = bar.get_height()
-        va = 'bottom' if height >= 0 else 'top'
-        offset = 0.02 if height >= 0 else -0.02
-        ax.text(bar.get_x() + bar.get_width()/2., height + offset,
-                f'{height:+.2f}', ha='center', va=va, fontsize=8)
 
     # Panel B: Improvement
     ax = axes[1]
     improvements = [ft - zs for ft, zs in zip(ft_spearman, zs_spearman)]
     colors = ['forestgreen' if imp > 0 else 'firebrick' for imp in improvements]
     bars = ax.bar(datasets, improvements, color=colors, alpha=0.85,
-                  edgecolor='black', linewidth=0.8)
+                  edgecolor='none')
 
     ax.set_ylabel('Spearman ρ Improvement')
-    ax.set_title('(B) Fine-Tuning Improvement')
     ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
-
-    for bar, imp in zip(bars, improvements):
-        height = bar.get_height()
-        va = 'bottom' if height >= 0 else 'top'
-        offset = 0.02 if height >= 0 else -0.02
-        ax.text(bar.get_x() + bar.get_width()/2., height + offset,
-                f'{imp:+.3f}', ha='center', va=va, fontsize=9, fontweight='bold')
 
     ax.set_xticklabels(datasets, rotation=15, ha='right')
 
-    fig.suptitle('Cross-Dataset Fine-Tuning: Vector Model Transfer Learning',
-                 fontsize=13)
     plt.tight_layout()
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)

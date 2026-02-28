@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.5)  8 FEB 2026 01:05
+This is pdfTeX, Version 3.141592653-2.6-1.40.22 (TeX Live 2022/dev/Debian) (preloaded format=pdflatex 2026.2.5)  10 FEB 2026 22:48
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -481,109 +481,188 @@ r/m/n/12 .
  []
 
 [3]
-Overfull \hbox (6.6595pt too wide) in paragraph at lines 135--141
+
+LaTeX Warning: Reference `fig:bimodal' on page 4 undefined on input line 134.
+
+<../figures/bimodal_bin_distributions.png, id=162, 1185.228pt x 335.3328pt>
+File: ../figures/bimodal_bin_distributions.png Graphic file (type png)
+<use ../figures/bimodal_bin_distributions.png>
+Package pdftex.def Info: ../figures/bimodal_bin_distributions.png  used on inpu
+t line 138.
+(pdftex.def)             Requested size: 446.26582pt x 126.26115pt.
+
+Overfull \hbox (6.6595pt too wide) in paragraph at lines 143--149
 []\OT1/cmr/m/n/12 The vec-tor re-gres-sion ar-chi-tec-ture uses two hid-den lay
 -ers of 256 units each with LeakyReLU
  []
 
-[4] [5]
-<../figures/grasso_reproduction.png, id=192, 860.013pt x 357.7365pt>
+[4 <../figures/bimodal_bin_distributions.png>] [5]
+<../figures/grasso_reproduction.png, id=199, 860.013pt x 357.7365pt>
 File: ../figures/grasso_reproduction.png Graphic file (type png)
 <use ../figures/grasso_reproduction.png>
 Package pdftex.def Info: ../figures/grasso_reproduction.png  used on input line
- 202.
+ 206.
 (pdftex.def)             Requested size: 446.26582pt x 185.63101pt.
- [6 <../figures/grasso_reproduction.png>]
-<../figures/final_comparison.png, id=211, 858.5676pt x 424.4658pt>
+ [6]
+<../figures/final_comparison.png, id=215, 858.5676pt x 424.4658pt>
 File: ../figures/final_comparison.png Graphic file (type png)
 <use ../figures/final_comparison.png>
-Package pdftex.def Info: ../figures/final_comparison.png  used on input line 23
-6.
+Package pdftex.def Info: ../figures/final_comparison.png  used on input line 24
+0.
 (pdftex.def)             Requested size: 446.26582pt x 220.62633pt.
- [7 <../figures/final_comparison.png>]
-<../figures/vector_regression_comparison.png, id=227, 860.013pt x 425.4294pt>
+ [7 <../figures/grasso_reproduction.png>] [8 <../figures/final_comparison.png>]
+<../figures/vector_regression_comparison.png, id=241, 715.473pt x 425.4294pt>
 File: ../figures/vector_regression_comparison.png Graphic file (type png)
 <use ../figures/vector_regression_comparison.png>
 Package pdftex.def Info: ../figures/vector_regression_comparison.png  used on i
-nput line 282.
-(pdftex.def)             Requested size: 446.26582pt x 220.75716pt.
- [8] [9 <../figures/vector_regression_comparison.png>]
-<../figures/vector_ensemble_optimization.png, id=244, 1004.553pt x 496.7358pt>
+nput line 286.
+(pdftex.def)             Requested size: 446.26582pt x 265.35391pt.
+ [9 <../figures/vector_regression_comparison.png>]
+<../figures/vector_ensemble_optimization.png, id=254, 1004.553pt x 496.7358pt>
 File: ../figures/vector_ensemble_optimization.png Graphic file (type png)
 <use ../figures/vector_ensemble_optimization.png>
 Package pdftex.def Info: ../figures/vector_ensemble_optimization.png  used on i
-nput line 324.
+nput line 328.
 (pdftex.def)             Requested size: 446.26582pt x 220.67154pt.
-<../figures/cross_dataset_generalization.png, id=247, 1004.0712pt x 357.4956pt>
+ [10 <../figures/vector_ensemble_optimization.png>]
+<../figures/cross_dataset_generalization.png, id=264, 1004.0712pt x 357.4956pt>
 
 File: ../figures/cross_dataset_generalization.png Graphic file (type png)
 <use ../figures/cross_dataset_generalization.png>
 Package pdftex.def Info: ../figures/cross_dataset_generalization.png  used on i
-nput line 356.
+nput line 360.
 (pdftex.def)             Requested size: 446.26582pt x 158.89139pt.
- [10 <../figures/vector_ensemble_optimization.png>]
-<../figures/design_task_evaluation.png, id=258, 1293.633pt x 357.7365pt>
+
+[11 <../figures/cross_dataset_generalization.png>]
+<../figures/design_task_evaluation.png, id=278, 1293.633pt x 711.8595pt>
 File: ../figures/design_task_evaluation.png Graphic file (type png)
 <use ../figures/design_task_evaluation.png>
 Package pdftex.def Info: ../figures/design_task_evaluation.png  used on input l
-ine 386.
-(pdftex.def)             Requested size: 446.26582pt x 123.4083pt.
- [11 <../figures/cross_dataset_generalization.png>] [12 <../figures/design_task
-_evaluation.png>]
-Overfull \hbox (6.09886pt too wide) in paragraph at lines 438--445
+ine 394.
+(pdftex.def)             Requested size: 446.26582pt x 245.57007pt.
+ [12 <../figures/design_task_evaluation.png>] [13]
+
+LaTeX Warning: Reference `app:dropout_val' on page 14 undefined on input line 4
+51.
+
+
+Overfull \hbox (6.09886pt too wide) in paragraph at lines 447--455
  []\OT1/cmr/bx/n/12 Limitations.[] \OT1/cmr/m/n/12 Sev-eral lim-i-ta-tions shou
 ld be noted. The RF and NN hy-per-pa-ram-e-ter searches
  []
 
-[13] (./main.bbl [14]) [15] [16] [17]
-<../figures/vector_architecture_search.png, id=318, 1004.553pt x 497.6994pt>
+[14] (./main.bbl [15]) [16] [17] [18]
+<../figures/vector_architecture_search.png, id=341, 1004.553pt x 497.6994pt>
 File: ../figures/vector_architecture_search.png Graphic file (type png)
 <use ../figures/vector_architecture_search.png>
 Package pdftex.def Info: ../figures/vector_architecture_search.png  used on inp
-ut line 593.
+ut line 603.
 (pdftex.def)             Requested size: 446.26582pt x 221.09961pt.
 
-Overfull \hbox (18.48683pt too wide) in paragraph at lines 610--639
+Overfull \hbox (18.48683pt too wide) in paragraph at lines 620--649
  [][] 
  []
 
-[18 <../figures/vector_architecture_search.png>]
-<../figures/bootstrap_forest_plot.png, id=331, 715.2321pt x 569.7285pt>
+[19 <../figures/vector_architecture_search.png>]
+<../figures/bootstrap_forest_plot.png, id=356, 859.7721pt x 569.7285pt>
 File: ../figures/bootstrap_forest_plot.png Graphic file (type png)
 <use ../figures/bootstrap_forest_plot.png>
 Package pdftex.def Info: ../figures/bootstrap_forest_plot.png  used on input li
-ne 643.
-(pdftex.def)             Requested size: 446.26582pt x 355.4796pt.
- [19] [20 <../figures/bootstrap_forest_plot.png>] (./main.aux)
-Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 434D03B77C87CB7EAA6708CF68AEC856;4046.
+ne 653.
+(pdftex.def)             Requested size: 446.26582pt x 295.72154pt.
+ [20]
+<../figures/dropout_validation.png, id=363, 569.4876pt x 351.4731pt>
+File: ../figures/dropout_validation.png Graphic file (type png)
+<use ../figures/dropout_validation.png>
+Package pdftex.def Info: ../figures/dropout_validation.png  used on input line 
+668.
+(pdftex.def)             Requested size: 352.31625pt x 217.44449pt.
+ [21 <../figures/bootstrap_forest_plot.png>]
+
+LaTeX Warning: Reference `fig:dropout_val' on page 22 undefined on input line 6
+73.
+
+[22 <../figures/dropout_validation.png>] (./main.aux)
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `main.out':
+(rerunfilecheck)             Before: 434D03B77C87CB7EAA6708CF68AEC856;4046
+(rerunfilecheck)             After:  73902F644668AF6E124923B9C74EEA26;3649.
  ) 
 Here is how much of TeX's memory you used:
- 12307 strings out of 480247
- 193816 string characters out of 5896152
- 505392 words of memory out of 5000000
- 30005 multiletter control sequences out of 15000+600000
+ 12342 strings out of 480247
+ 194671 string characters out of 5896152
+ 504392 words of memory out of 5000000
+ 30020 multiletter control sequences out of 15000+600000
  482005 words of font info for 76 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 60i,13n,63p,764b,442s stack positions out of 5000i,500n,10000p,200000b,80000s
- </home/z/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600pk><
-/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/s
-hare/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/t
-exlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive
-/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf
--dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/
-fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/t
-ype1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
-blic/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
-sfonts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/c
-m/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy
-8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb>
-</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/
-share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
-Output written on main.pdf (20 pages, 3868402 bytes).
+ 60i,13n,63p,861b,448s stack positions out of 5000i,500n,10000p,200000b,80000s
+pdfTeX warning (dest): name{figure.caption.26} has been referenced but does n
+ot exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.25} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.24} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.23} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{figure.caption.13} has been referenced but does not
+ exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.12} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{figure.caption.11} has been referenced but does not
+ exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.10} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{figure.caption.7} has been referenced but does not 
+exist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.6} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{table.caption.2} has been referenced but does not e
+xist, replaced by a fixed one
+
+pdfTeX warning (dest): name{subsection.3.6} has been referenced but does not ex
+ist, replaced by a fixed one
+
+pdfTeX warning (dest): name{subsection.2.10} has been referenced but does not e
+xist, replaced by a fixed one
+
+ </home/z/.texlive2021/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1200.600pk></u
+sr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/tex
+live/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/t
+exmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-d
+ist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></usr/share/texlive/texmf-dist/fo
+nts/type1/public/amsfonts/cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/typ
+e1/public/amsfonts/cm/cmr10.pfb></usr/share/texlive/texmf-dist/fonts/type1/publ
+ic/amsfonts/cm/cmr12.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
+onts/cm/cmr8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/
+cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.
+pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></
+usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmti12.pfb></usr/sh
+are/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on main.pdf (22 pages, 5913827 bytes).
 PDF statistics:
- 429 PDF objects out of 1000 (max. 8388607)
- 350 compressed objects within 4 object streams
- 85 named destinations out of 1000 (max. 500000)
- 241 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 465 PDF objects out of 1000 (max. 8388607)
+ 380 compressed objects within 4 object streams
+ 103 named destinations out of 1000 (max. 500000)
+ 251 words of extra memory for PDF output out of 10000 (max. 10000000)
 

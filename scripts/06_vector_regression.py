@@ -287,21 +287,16 @@ def _make_figure(results):
     bars_focal = ax.bar(x + width/2, focal_mses, width, label='Focal Loss', color='darkorange', alpha=0.85)
 
     # Reference lines
-    ax.axhline(y=1.0497, color='gray', linewidth=1.2, linestyle='--', label='NN Regression Best (1.05)')
-    ax.axhline(y=0.95, color='green', linewidth=1.2, linestyle=':', label='Dr. Schrier Benchmark (0.95)')
+    ax.axhline(y=1.0497, color='gray', linewidth=1.0, linestyle='--', alpha=0.8,
+               label='NN Regression Best (1.05)')
+    ax.axhline(y=0.95, color='green', linewidth=1.0, linestyle=':', alpha=0.8,
+               label='Benchmark (0.953)')
 
     # Labels
     ax.set_ylabel('Test MSE')
-    ax.set_title('Vector Regression: Cross-Entropy vs Focal Loss')
     ax.set_xticks(x)
     ax.set_xticklabels(emb_names)
     ax.legend(loc='upper right')
-
-    # Value labels
-    for bar in list(bars_ce) + list(bars_focal):
-        height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height + 0.01,
-                f'{height:.3f}', ha='center', va='bottom', fontsize=9)
 
     ax.set_ylim(0, max(ce_mses + focal_mses) * 1.15)
 

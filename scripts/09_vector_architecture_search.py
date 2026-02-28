@@ -662,21 +662,15 @@ def _make_figure(all_results, p1, p3, p4):
     bars = ax.bar(x, mses, color=colors, alpha=0.85)
 
     # Reference lines
-    ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=2,
-               label=f'Dr. Schrier ({SCHRIER_MSE})')
-    ax.axhline(y=1.001, color='gray', linestyle='--', linewidth=1.2,
-               label='Script 06 best (1.001)')
+    ax.axhline(y=SCHRIER_MSE, color='green', linestyle=':', linewidth=1.0, alpha=0.8,
+               label=f'Benchmark ({SCHRIER_MSE})')
+    ax.axhline(y=1.001, color='gray', linestyle='--', linewidth=1.0, alpha=0.8,
+               label='Val-split best (1.001)')
 
     ax.set_xticks(x)
     ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=8)
     ax.set_ylabel('Test MSE (all 1326 samples)')
-    ax.set_title('Vector Architecture Search: Full-Data Training Results')
     ax.legend(loc='upper right')
-
-    for bar in bars:
-        h = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width() / 2., h + 0.003,
-                f'{h:.3f}', ha='center', va='bottom', fontsize=7)
 
     plt.tight_layout()
     fig_path = FIGURES_DIR / 'vector_architecture_search.png'

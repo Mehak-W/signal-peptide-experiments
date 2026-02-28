@@ -118,55 +118,32 @@ def find_bimodal_examples(df, n_examples=2):
 
 
 def make_figure(examples, save_path):
-    """Generate the bimodal distribution figure."""
-    n = len(examples)
-    fig, axes = plt.subplots(1, n, figsize=(5.5 * n, 4.5))
-    if n == 1:
-        axes = [axes]
+    """Generate the bimodal distribution figure (single panel, Tufte style)."""
+    ex = examples[0]
+    fig, ax = plt.subplots(figsize=(3.5, 3.0))
 
     bins = np.arange(1, 11)
+    probs = np.array(ex['probs'])
+    wa = ex['wa']
 
-    for ax, ex in zip(axes, examples):
-        probs = np.array(ex['probs'])
-        wa = ex['wa']
+    # Uniform gray bars, no edges
+    ax.bar(bins, probs, color='0.55', edgecolor='none')
 
-        # Color bars: peaks in green, WA bin in orange, rest in steelblue
-        colors = ['steelblue'] * 10
-        colors[ex['peak1_bin'] - 1] = 'forestgreen'
-        colors[ex['peak2_bin'] - 1] = 'forestgreen'
-        wa_bin_idx = max(0, min(9, int(round(wa)) - 1))
-        colors[wa_bin_idx] = 'darkorange'
+    # WA vertical dashed line
+    ax.axvline(wa, color='firebrick', linestyle='--', linewidth=1.5, zorder=5)
 
-        bars = ax.bar(bins, probs, color=colors, edgecolor='black',
-                      linewidth=1.0, alpha=0.85)
+    # Gene label (upper left)
+    ax.text(0.05, 0.92, ex['gene'], transform=ax.transAxes,
+            fontsize=10, fontstyle='italic', va='top')
 
-        # WA vertical line
-        ax.axvline(wa, color='firebrick', linestyle='--', linewidth=2.0,
-                   label=f'WA = {wa:.2f}', zorder=5)
+    # WA label next to dashed line
+    ax.text(wa + 0.15, 0.20, f'WA = {wa:.2f}', fontsize=9, color='firebrick')
 
-        # Annotate peaks
-        ax.annotate(f'{ex["peak1_prob"]:.1%}',
-                    xy=(ex['peak1_bin'], ex['peak1_prob']),
-                    xytext=(0, 8), textcoords='offset points',
-                    ha='center', fontsize=9, fontweight='bold', color='forestgreen')
-        ax.annotate(f'{ex["peak2_prob"]:.1%}',
-                    xy=(ex['peak2_bin'], ex['peak2_prob']),
-                    xytext=(0, 8), textcoords='offset points',
-                    ha='center', fontsize=9, fontweight='bold', color='forestgreen')
+    ax.set_xlabel('Bin Number', fontsize=11)
+    ax.set_ylabel('Fraction of Reads', fontsize=11)
+    ax.set_xticks(bins)
+    ax.set_ylim(0, 0.30)
 
-        ax.set_xlabel('Bin Number', fontsize=11)
-        ax.set_ylabel('Fraction of Reads', fontsize=11)
-        gene = ex['gene']
-        ax.set_title(f'Gene: {gene}\n(WA = {wa:.2f}, peaks at bins '
-                     f'{ex["peak1_bin"]} & {ex["peak2_bin"]})',
-                     fontsize=10)
-        ax.set_xticks(bins)
-        ax.set_ylim(0, max(probs) * 1.2)
-        ax.legend(fontsize=9, loc='upper center')
-        ax.grid(axis='y', alpha=0.3, linestyle='--')
-
-    fig.suptitle('Bimodal Bin Distributions: WA Falls Between Peaks',
-                 fontsize=13, fontweight='bold', y=1.02)
     plt.tight_layout()
     fig.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close(fig)
@@ -185,7 +162,7 @@ def main():
 
     # Find bimodal examples
     print("\nSearching for bimodal examples...")
-    examples = find_bimodal_examples(df, n_examples=3)
+    examples = find_bimodal_examples(df, n_examples=1)
     print(f"  Found {len(examples)} bimodal examples:")
 
     for i, ex in enumerate(examples):

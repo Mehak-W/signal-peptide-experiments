@@ -352,20 +352,11 @@ def _make_figure(all_external_results, results, zhang_merged):
     bars_nn = ax.bar(x + width/2, nn_spearman, width, label='NN', color='darkorange', alpha=0.85)
 
     ax.set_ylabel('Spearman Rank Correlation')
-    ax.set_title('(A) Cross-Dataset Generalization')
     ax.set_xticks(x)
     ax.set_xticklabels(datasets, rotation=15, ha='right')
     ax.legend()
     ax.set_ylim(-0.5, 0.5)
     ax.axhline(y=0, color='gray', linewidth=0.8, linestyle='--')
-
-    # Add value labels
-    for bar in list(bars_rf) + list(bars_nn):
-        height = bar.get_height()
-        va = 'bottom' if height >= 0 else 'top'
-        offset = 0.02 if height >= 0 else -0.02
-        ax.text(bar.get_x() + bar.get_width()/2., height + offset,
-                f'{height:+.2f}', ha='center', va=va, fontsize=8)
 
     # ── Panel B: Zhang cross-promoter scatter (sequence-matched) ─────────
     ax = axes[1]
@@ -380,7 +371,7 @@ def _make_figure(all_external_results, results, zhang_merged):
     pred_rf_ranks = rankdata(zhang_merged['pred_rf_p43'].values)
 
     ax.scatter(p43_wa_ranks, pglvm_wa_ranks, alpha=0.5, s=30, color='steelblue',
-               label=f'Actual WA: P43 vs PglVM (ρ={results["zhang_cross_promoter"]["actual_wa_correlation"]:.2f})')
+               label='Actual WA: P43 vs PglVM')
     ax.scatter(p43_wa_ranks, pred_rf_ranks, alpha=0.5, s=30, color='darkorange', marker='^',
                label=f'RF predicted vs P43 actual')
 
@@ -388,10 +379,9 @@ def _make_figure(all_external_results, results, zhang_merged):
     ax.plot(lims, lims, 'k--', lw=0.8, alpha=0.5)
     ax.set_xlabel('Zhang-P43 Actual WA Rank')
     ax.set_ylabel('Rank')
-    ax.set_title('(B) Zhang: Cross-Promoter Consistency')
+    ax.text(0.05, 0.95, '(B)', transform=ax.transAxes, fontsize=10, va='top')
     ax.legend(fontsize=8, loc='upper left')
 
-    fig.suptitle('Cross-Dataset Generalization of Grasso-Trained Models', fontsize=13)
     plt.tight_layout()
 
     fig_path = FIGURES_DIR / 'cross_dataset_generalization.png'
