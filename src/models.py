@@ -10,7 +10,11 @@ SignalPeptideVectorNN: Vector regression network for bin probability prediction.
   - Dense(units, LeakyReLU) -> Dropout per hidden layer
   - Output: Dense(10, softmax)
   - Loss: FocalLoss or categorical_crossentropy
+
+ReLUSquared: Custom activation layer — ReLU²(x) = max(0,x)².
+  Ref: So et al. (2021) "Primer: Searching for Efficient Transformers."
 """
+import json
 import numpy as np
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -262,3 +266,75 @@ class SignalPeptideVectorNN:
             'epochs': self.epochs,
             'loss': self.loss,
         }
+
+
+# ---------------------------------------------------------------------------
+# ReLU² activation layer
+# ---------------------------------------------------------------------------
+
+@keras.utils.register_keras_serializable(package='signal_peptide')
+class ReLUSquared(layers.Layer):
+    """ReLU²(x) = max(0, x)². Produces sparser activations than LeakyReLU."""
+
+    def call(self, x):
+        return tf.square(tf.nn.relu(x))
+
+    def get_config(self):
+        return super().get_config()
+
+
+# ---------------------------------------------------------------------------
+# Ensemble persistence
+# ---------------------------------------------------------------------------
+BIN_CENTERS = np.arange(1, 11)
+
+
+def load_ensemble(models_dir):
+    """
+    Load a saved 5-seed ensemble from disk.
+
+    Args:
+        models_dir: path to directory containing .keras files, scaler.joblib, config.json
+
+    Returns:
+        (models_list, scaler, config_dict)
+    """
+    from pathlib import Path
+    import joblib
+
+    models_dir = Path(models_dir)
+    with open(models_dir / 'config.json') as f:
+        config = json.load(f)
+
+    scaler = joblib.load(models_dir / 'scaler.joblib')
+
+    custom_objects = {
+        'FocalLoss': FocalLoss,
+        'ReLUSquared': ReLUSquared,
+    }
+    models = []
+    for seed in config['seeds']:
+        path = models_dir / f'vector_nn_seed_{seed}.keras'
+        model = keras.models.load_model(path, custom_objects=custom_objects)
+        models.append(model)
+
+    return models, scaler, config
+
+
+def predict_ensemble_wa(models, X, scaler=None):
+    """
+    Predict weighted-average WA from an ensemble of vector NN models.
+
+    Args:
+        models: list of Keras models (softmax(10) output)
+        X: raw feature matrix (unscaled) or pre-scaled if scaler is None
+        scaler: StandardScaler to apply, or None if X is pre-scaled
+
+    Returns:
+        1-D array of predicted WA values
+    """
+    if scaler is not None:
+        X = scaler.transform(X)
+
+    preds = [m.predict(X, verbose=0) @ BIN_CENTERS for m in models]
+    return np.mean(preds, axis=0)

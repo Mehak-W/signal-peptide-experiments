@@ -335,3 +335,51 @@ def load_design_embeddings(model_name='esm2-650M', data_dir=None):
     data_dir = Path(data_dir) if data_dir else _default_data_dir()
     path = data_dir / f'design_{model_name}_embeddings.parquet'
     return pd.read_parquet(path)
+
+
+# ---------------------------------------------------------------------------
+# Unified dataset loading (standardized schema from Script 16)
+# ---------------------------------------------------------------------------
+
+def load_unified(dataset_source=None, set_filter=None, data_dir=None):
+    """
+    Load from the unified parquet schema (produced by Script 16).
+
+    Args:
+        dataset_source: 'grasso', 'wu', 'xue', 'zhang_p43', 'zhang_pglvm', or None for all
+        set_filter: 'train', 'test', 'design', 'external', or None for all
+        data_dir: path to data directory (default: data/)
+
+    Returns:
+        DataFrame with standardized columns:
+        sequence, embedding, WA, BIN01-BIN10, gene, set, dataset_source
+    """
+    data_dir = Path(data_dir) if data_dir else _default_data_dir()
+    unified_dir = data_dir / 'unified'
+
+    if dataset_source is not None:
+        # Load per-dataset file
+        if dataset_source == 'grasso' and set_filter in ('train', 'test', 'design'):
+            path = unified_dir / f'grasso_{set_filter}.parquet'
+        elif dataset_source == 'grasso':
+            # Combine all grasso splits
+            parts = []
+            for split in ('train', 'test', 'design'):
+                p = unified_dir / f'grasso_{split}.parquet'
+                if p.exists():
+                    parts.append(pd.read_parquet(p))
+            df = pd.concat(parts, ignore_index=True)
+            if set_filter:
+                df = df[df['set'] == set_filter]
+            return df
+        else:
+            path = unified_dir / f'{dataset_source}.parquet'
+        df = pd.read_parquet(path)
+    else:
+        path = unified_dir / 'all_datasets_esm2_650M.parquet'
+        df = pd.read_parquet(path)
+
+    if set_filter is not None:
+        df = df[df['set'] == set_filter].reset_index(drop=True)
+
+    return df

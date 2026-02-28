@@ -19,6 +19,10 @@ Development timeline for the signal peptide prediction study.
 | 11 | Dropout validation sweep | Optimal dropout = 0.35 |
 | 12 | Bimodal distribution figure (Figure 1) | Motivating example |
 | 13 | Cross-dataset fine-tuning | Transfer via frozen-layer fine-tuning |
+| save_best_model | Save 5-seed ensemble weights | models/ with round-trip validation |
+| 14 | ReLU² vs LeakyReLU activation comparison | Sparsity analysis + bootstrap CIs |
+| 15 | Regression vs classification comparison | 10-bin vs 5/3/2-class info loss |
+| 16 | Standardize parquet schema | Unified 9,963-row dataset |
 | 00 | ESM2-650M embedding generation for designs | 4,911 design variant embeddings |
 
 ## Key Milestones
@@ -40,6 +44,25 @@ Development timeline for the signal peptide prediction study.
 - **Final result**: Script 10 optimized dropout and ensemble strategy,
   achieving MSE = 0.9323 [0.823, 1.054] 95% CI, a 2.2% improvement
   over the benchmark (0.953) and 23.6% over baseline (1.22).
+
+- **Model persistence**: save_best_model trains and saves the 5-seed
+  ensemble (256,256,128, dropout=0.35, focal loss) to `models/` with
+  round-trip validation. Adds `load_ensemble()` and
+  `predict_ensemble_wa()` to `src/models.py`.
+
+- **Activation comparison**: Script 14 tests ReLU²(x) = max(0,x)² vs
+  LeakyReLU. Hypothesis: squared activation produces sparser
+  representations for sparse bin distributions. Includes Hoyer sparsity
+  metric and bootstrap CIs.
+
+- **Output formulation**: Script 15 compares 4 output strategies
+  (10-bin vector regression, 5-class, 3-class, binary) on identical
+  architecture. Quantifies information loss as output dimensionality
+  decreases from 10 bins to binary.
+
+- **Data standardization**: Script 16 consolidates all 7 datasets into
+  a unified parquet schema (9,963 rows) with consistent column names,
+  producing `data/unified/all_datasets_esm2_650M.parquet`.
 
 ## Figure Revision History
 
