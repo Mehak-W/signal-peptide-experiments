@@ -1,6 +1,6 @@
 # Signal Peptide Efficiency Prediction
 
-We compare random forest and neural network regressors for predicting signal peptide secretion efficiency in *Bacillus subtilis*, using physicochemical descriptors and three protein language model (PLM) embedding sets. Predicting full 10-bin probability distributions instead of scalar activity values, combined with dropout tuning and multi-seed ensembling, yields a test MSE of **0.932** [0.823, 1.054] (95% bootstrap CI) — a 23.6% improvement over the physicochemical baseline (1.22) and 2.2% over a prior benchmark (0.953). Fine-tuning on external datasets reverses negative zero-shot correlations for 2 of 4 datasets, suggesting partial transferability of learned representations.
+We compare random forest and neural network regressors for predicting signal peptide secretion efficiency in *Bacillus subtilis*, using physicochemical descriptors and three protein language model (PLM) embedding sets. Predicting full 10-bin probability distributions instead of scalar activity values, combined with dropout tuning and multi-seed ensembling, yields a test MSE of **0.932** [0.823, 1.054] (95% bootstrap CI) — a 23.6% improvement over the physicochemical baseline (1.22) and 2.2% over a prior benchmark (0.953). Fine-tuning on external datasets reverses the negative zero-shot correlation for one of four datasets (Wu, binary outcome), with limited evidence for transferability of learned representations.
 
 ## Key Results
 
@@ -30,6 +30,11 @@ We compare random forest and neural network regressors for predicting signal pep
 | 11 | Dropout validation | Validates dropout selection via 80/20 train/val split (independent of test set) |
 | 12 | Bimodal histogram | Motivating figure: bimodal bin distributions where WA falls between peaks |
 | 13 | Cross-dataset fine-tuning | Fine-tune vector ensemble on external datasets (5-fold CV × 5 seeds) |
+| 14 | ReLU² activation comparison | LeakyReLU vs ReLU-squared: accuracy vs sparsity tradeoff |
+| 15 | Regression vs classification | 10-bin vector (focal + CCE) vs 5/3/2-class output formulations |
+| 16 | Unified parquet schema | Standardize all datasets into unified parquet format |
+| 17 | Gene-stratified evaluation | Leave-one-gene-out CV to test cross-gene generalization |
+| 18 | Linear baselines | Linear probe, Ridge, XGBoost baselines for embedding contribution analysis |
 
 ## Directory Structure
 
@@ -53,8 +58,13 @@ signal_peptide_study/
 │   ├── 09_vector_architecture_search.py     Full-data architecture search
 │   ├── 10_vector_ensemble_optimization.py   Dropout + ensemble optimization
 │   ├── 11_dropout_validation.py             Validates dropout selection on held-out data
-│   ├── 12_bimodal_histogram.py            Bimodal bin distribution figure
-│   └── 13_cross_dataset_finetuning.py     Cross-dataset transfer learning
+│   ├── 12_bimodal_histogram.py              Bimodal bin distribution figure
+│   ├── 13_cross_dataset_finetuning.py       Cross-dataset transfer learning
+│   ├── 14_relu_squared.py                   ReLU² activation comparison
+│   ├── 15_regression_vs_classification.py   Output formulation comparison (5 conditions)
+│   ├── 16_unified_parquet.py                Unified parquet schema
+│   ├── 17_gene_stratified_evaluation.py     Leave-one-gene-out CV
+│   └── 18_linear_baseline.py               Linear probe + Ridge + XGBoost baselines
 ├── results/           JSON + CSV outputs
 ├── figures/           PNG plots (300 DPI)
 ├── paper/             LaTeX manuscript
@@ -111,6 +121,21 @@ python3 scripts/12_bimodal_histogram.py
 
 # Step 13: Cross-dataset fine-tuning, vector ensemble transfer learning (~30-60 min)
 python3 -u scripts/13_cross_dataset_finetuning.py
+
+# Step 14: ReLU² activation comparison (~20 min)
+python3 -u scripts/14_relu_squared.py
+
+# Step 15: Regression vs classification (5 output formulations) (~25 min)
+python3 -u scripts/15_regression_vs_classification.py
+
+# Step 16: Unified parquet schema (~5 min)
+python3 scripts/16_unified_parquet.py
+
+# Step 17: Gene-stratified evaluation, leave-one-gene-out CV (~60-90 min)
+python3 -u scripts/17_gene_stratified_evaluation.py
+
+# Step 18: Linear baselines (linear probe, Ridge, XGBoost) (~30-60 min)
+python3 -u scripts/18_linear_baseline.py
 ```
 
 All scripts save results to `results/` (JSON + CSV) and figures to `figures/` (PNG, 300 DPI). A Jupyter notebook (`run_all.ipynb`) is also provided for running all scripts sequentially with explanatory markdown cells.
@@ -176,8 +201,8 @@ Best result: MSE **0.932** [0.823, 1.054] 95% CI, beating Dr. Schrier's 0.953 by
 
 | Dataset | N | RF Spearman (p) | NN Spearman (p) |
 |---|---|---|---|
-| Wu | 81 | -0.314 (0.004) | -0.241 (0.030) |
-| Xue | 322 | -0.278 (<0.001) | -0.154 (0.006) |
+| Wu | 81 | -0.314 (0.004) | -0.288 (0.009) |
+| Xue | 322 | -0.278 (<0.001) | -0.127 (0.023) |
 | Zhang-P43 | 114 | -0.218 (0.020) | -0.196 (0.037) |
 | Zhang-PglVM | 114 | -0.250 (0.007) | -0.213 (0.023) |
 
@@ -187,19 +212,19 @@ Models trained on Grasso data do not generalize to external datasets (significan
 
 | Dataset | N | Zero-Shot ρ | Fine-Tuned ρ |
 |---|---|---|---|
-| Wu | 81 | -0.181 | +0.193 ± 0.071 |
-| Xue | 322 | -0.052 | +0.121 ± 0.083 |
-| Zhang-P43 | 114 | -0.254 | +0.034 ± 0.154 |
-| Zhang-PglVM | 114 | -0.282 | -0.040 ± 0.051 |
+| Wu | 81 | -0.206 | +0.190 ± 0.182 |
+| Xue | 322 | -0.129 | -0.250 ± 0.104 |
+| Zhang-P43 | 114 | -0.211 | -0.271 ± 0.183 |
+| Zhang-PglVM | 114 | -0.249 | -0.319 ± 0.143 |
 
-Fine-tuning the pretrained vector ensemble reverses negative zero-shot correlations for Wu and Xue. Zhang datasets remain near zero due to small sample sizes (~91 training samples per fold).
+Fine-tuning reverses the negative zero-shot correlation only for Wu (binary outcome), but fails to improve or actively worsens performance on all three continuous datasets. Even the Wu result has high variance (±0.182) and no individual fold reaches statistical significance.
 
 ### Design Task Evaluation (Script 07)
 
 | Features | Model | Spearman | Pearson | MSE | ClassAcc |
 |---|---|---|---|---|---|
-| ESM2-650M (1280d) | NN | **0.394** | **0.406** | 4.03 | 71.7% |
-| PhysChem (156d) | NN | 0.386 | 0.400 | **3.99** | 72.0% |
+| ESM2-650M (1280d) | NN | **0.390** | **0.403** | 4.05 | 72.0% |
+| PhysChem (156d) | NN | 0.378 | 0.388 | **4.02** | 72.5% |
 | PhysChem (156d) | RF | 0.369 | 0.378 | 4.07 | **74.2%** |
 | ESM2-650M (1280d) | RF | 0.363 | 0.367 | 4.15 | 72.9% |
 
@@ -215,7 +240,7 @@ All four models meaningfully rank 4,832 designed SP variants (p < 10^-150), with
 2. **Vector regression improves over scalar** --- predicting 10-dim bin distributions (softmax) outperforms Dense(1, linear) regression across all embedding types
 3. **RF is robust but flat across feature types** --- all RF models achieve MSE 1.16-1.25 regardless of input representation
 4. **NNs require rich features** --- NN + PhysChem (1.33) is worse than RF + PhysChem (1.21); NNs only outperform RF with PLM embeddings
-5. **Cross-dataset: zero-shot models do not generalize** --- negative correlations reversed by fine-tuning for 2/4 datasets
+5. **Cross-dataset: zero-shot models do not generalize** --- fine-tuning reverses the negative correlation for only 1/4 datasets (Wu, binary outcome)
 6. **Design task: practical utility** --- Spearman 0.36-0.39 and 72-74% classification accuracy on designed variants using both PhysChem and ESM2-650M features
 
 ## Paper

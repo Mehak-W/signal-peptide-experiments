@@ -84,7 +84,7 @@ def verify_bin_integrity(y_bins, y_wa, label):
           f"exact match (<0.05): {n_close}/{len(y_wa)} ({100*n_close/len(y_wa):.1f}%)")
 
 
-def train_ensemble(X_train, y_train_bins, X_test, loss_type, scaler):
+def train_ensemble(X_train, y_train_bins, X_test, loss_type, scaler=None):
     """Train 5-seed ensemble and return averaged test predictions."""
     all_preds = []
     seed_mses = []
@@ -97,9 +97,12 @@ def train_ensemble(X_train, y_train_bins, X_test, loss_type, scaler):
         val_idx = indices[:n_val]
         train_idx = indices[n_val:]
 
-        X_tr = scaler.transform(X_train[train_idx])
-        X_val = scaler.transform(X_train[val_idx])
-        X_te = scaler.transform(X_test)
+        # Fit scaler inside fold to avoid validation data leakage
+        fold_scaler = StandardScaler()
+        fold_scaler.fit(X_train[train_idx])
+        X_tr = fold_scaler.transform(X_train[train_idx])
+        X_val = fold_scaler.transform(X_train[val_idx])
+        X_te = fold_scaler.transform(X_test)
 
         model = SignalPeptideVectorNN(
             hidden_layers=(256, 256),

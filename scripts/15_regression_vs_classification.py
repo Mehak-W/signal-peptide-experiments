@@ -2,15 +2,19 @@
 """
 Script 15: Regression vs Classification Comparison
 
-Compares 4 output formulations on the same data/architecture to quantify
-information loss as output dimensionality decreases:
+Compares 5 output formulations on the same data/architecture to quantify
+information loss as output dimensionality decreases, with a same-loss control:
 
   | Approach              | Output       | Loss | Bins→WA mapping         |
   |-----------------------|-------------|------|-------------------------|
   | Vector regression     | softmax(10) | focal| bins @ [1..10]          |
+  | Vector regression     | softmax(10) | CCE  | bins @ [1..10]          |
   | 5-class classification| softmax(5)  | CCE  | argmax → class centroid |
   | 3-class classification| softmax(3)  | CCE  | argmax → class centroid |
   | Binary classification | sigmoid(1)  | BCE  | prob → low/high centroid|
+
+The 10-bin CCE condition isolates the effect of output formulation from
+the loss function (focal vs CCE confound flagged by reviewers).
 
 All use same architecture (256,256,128, LeakyReLU, dropout=0.35) and 5-seed
 ensembles. MSE is derived from classification outputs via class centroids to
@@ -164,13 +168,29 @@ def bootstrap_ci(y_true, y_pred, n_boot=N_BOOTSTRAP, seed=42):
     }
 
 
-def run_vector_regression(X_tr, y_bins, X_te, y_test):
+def run_vector_regression(X_tr, y_bins, X_te, y_test, loss='focal'):
     """Train 5-seed vector regression ensemble."""
-    print("\n  Vector Regression (10-bin softmax, focal loss)")
+    loss_label = 'focal loss' if loss == 'focal' else 'CCE'
+    print(f"\n  Vector Regression (10-bin softmax, {loss_label})")
     preds = []
     for seed in SEEDS:
         t0 = time.time()
-        model = build_vector_model(X_tr.shape[1], seed=seed)
+        if loss == 'focal':
+            model = build_vector_model(X_tr.shape[1], seed=seed)
+        else:
+            # CCE variant: same architecture, different loss
+            tf.random.set_seed(seed)
+            np.random.seed(seed)
+            inputs = keras.Input(shape=(X_tr.shape[1],))
+            x = inputs
+            for units in (256, 256, 128):
+                x = layers.Dense(units)(x)
+                x = layers.LeakyReLU()(x)
+                x = layers.Dropout(0.35)(x)
+            outputs = layers.Dense(10, activation='softmax')(x)
+            model = keras.Model(inputs=inputs, outputs=outputs)
+            model.compile(optimizer=keras.optimizers.Adam(learning_rate=5e-4),
+                          loss='categorical_crossentropy')
         train_model(model, X_tr, y_bins)
         pred = model.predict(X_te, verbose=0) @ BIN_CENTERS
         preds.append(pred)
@@ -254,12 +274,12 @@ def run_classification(X_tr, y_train_wa, X_te, y_test, n_classes, train_median=N
 
 
 def make_figure(results):
-    """2x2 Tufte-style figure."""
-    fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+    """2x2 Tufte-style figure with 5 conditions."""
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
-    approaches = ['vector_10bin', '5class', '3class', 'binary']
-    labels = ['10-bin\nvector', '5-class', '3-class', 'Binary']
-    colors = ['#2E6B8A', '#4A9E6D', '#D4A843', '#C45B3E']
+    approaches = ['vector_10bin', 'vector_10bin_cce', '5class', '3class', 'binary']
+    labels = ['10-bin\nfocal', '10-bin\nCCE', '5-class\nCCE', '3-class\nCCE', 'Binary\nBCE']
+    colors = ['#2E6B8A', '#5B9BD5', '#4A9E6D', '#D4A843', '#C45B3E']
 
     # ── (A) MSE comparison ────────────────────────────────────────────────
     ax = axes[0, 0]
@@ -274,9 +294,9 @@ def make_figure(results):
     ax.errorbar(x, mse_vals, yerr=[yerr_lo, yerr_hi], fmt='none', ecolor='black',
                 capsize=4, capthick=1, linewidth=1)
     ax.axhline(y=SCHRIER_MSE, color='gray', linewidth=0.8, linestyle='--', alpha=0.7)
-    ax.text(3.4, SCHRIER_MSE, 'Schrier (0.953)', fontsize=7, color='gray', va='center')
+    ax.text(4.4, SCHRIER_MSE, 'Schrier (0.953)', fontsize=7, color='gray', va='center')
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_xticklabels(labels, fontsize=7)
     ax.set_ylabel('Test MSE', fontsize=9)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -294,7 +314,7 @@ def make_figure(results):
     ax.errorbar(x, sp_vals, yerr=[yerr_lo, yerr_hi], fmt='none', ecolor='black',
                 capsize=4, capthick=1, linewidth=1)
     ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=8)
+    ax.set_xticklabels(labels, fontsize=7)
     ax.set_ylabel('Spearman \u03c1', fontsize=9)
     sp_min = min(sp_lo) - 0.02
     ax.set_ylim(sp_min, max(sp_hi) + 0.01)
@@ -317,13 +337,13 @@ def make_figure(results):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.text(-0.15, 1.05, 'C', transform=ax.transAxes, fontsize=12, fontweight='bold')
-    ax.text(0.95, 0.05, '10-bin vector', transform=ax.transAxes, fontsize=8,
+    ax.text(0.95, 0.05, '10-bin focal', transform=ax.transAxes, fontsize=8,
             ha='right', color=colors[0])
 
     # ── (D) Pred vs actual — 3-class (discrete staircase) ────────────────
     ax = axes[1, 1]
     y_pred_3c = np.array(results['3class']['predictions'])
-    ax.scatter(y_true, y_pred_3c, s=5, alpha=0.35, color=colors[2], edgecolors='none', rasterized=True)
+    ax.scatter(y_true, y_pred_3c, s=5, alpha=0.35, color=colors[3], edgecolors='none', rasterized=True)
     ax.plot(lims, lims, color='gray', linewidth=0.7, linestyle='--', alpha=0.5)
     ax.set_xlim(lims)
     ax.set_ylim(lims)
@@ -334,7 +354,7 @@ def make_figure(results):
     ax.spines['right'].set_visible(False)
     ax.text(-0.15, 1.05, 'D', transform=ax.transAxes, fontsize=12, fontweight='bold')
     ax.text(0.95, 0.05, '3-class', transform=ax.transAxes, fontsize=8,
-            ha='right', color=colors[2])
+            ha='right', color=colors[3])
 
     plt.tight_layout()
     fig_path = FIGURES_DIR / 'regression_vs_classification.png'
@@ -363,15 +383,28 @@ def main():
 
     all_results = {'y_test': y_test.tolist()}
 
-    # ── 1. Vector regression (10-bin) ─────────────────────────────────────
+    # ── 1a. Vector regression (10-bin, focal loss) ──────────────────────
     print(f"\n{'='*60}")
-    print("  1. Vector Regression (10-bin)")
+    print("  1a. Vector Regression (10-bin, focal loss)")
     print(f"{'='*60}")
-    y_pred_vec, ci_vec = run_vector_regression(X_tr, y_train_bins, X_te, y_test)
+    y_pred_vec, ci_vec = run_vector_regression(X_tr, y_train_bins, X_te, y_test, loss='focal')
     all_results['vector_10bin'] = {
         'bootstrap_ci': ci_vec,
         'predictions': y_pred_vec.tolist(),
         'output_dim': 10,
+        'loss': 'focal',
+    }
+
+    # ── 1b. Vector regression (10-bin, CCE) ───────────────────────────────
+    print(f"\n{'='*60}")
+    print("  1b. Vector Regression (10-bin, CCE)")
+    print(f"{'='*60}")
+    y_pred_cce, ci_cce = run_vector_regression(X_tr, y_train_bins, X_te, y_test, loss='cce')
+    all_results['vector_10bin_cce'] = {
+        'bootstrap_ci': ci_cce,
+        'predictions': y_pred_cce.tolist(),
+        'output_dim': 10,
+        'loss': 'categorical_crossentropy',
     }
 
     # ── 2. 5-class classification ─────────────────────────────────────────
@@ -419,25 +452,27 @@ def main():
     print(f"\n{'='*60}")
     print(f"  SUMMARY  ({elapsed:.1f} min)")
     print(f"{'='*60}")
-    print(f"\n  {'Approach':<20} {'Dim':>4} {'MSE':>8} {'MSE 95% CI':>20} {'Spearman':>10}")
-    print(f"  {'-'*65}")
-    for name, label in [('vector_10bin', 'Vector (10-bin)'),
-                        ('5class', '5-class'),
-                        ('3class', '3-class'),
-                        ('binary', 'Binary')]:
+    print(f"\n  {'Approach':<25} {'Dim':>4} {'Loss':<8} {'MSE':>8} {'MSE 95% CI':>20} {'Spearman':>10}")
+    print(f"  {'-'*80}")
+    for name, label, loss_name in [('vector_10bin', 'Vector (10-bin)', 'focal'),
+                                    ('vector_10bin_cce', 'Vector (10-bin)', 'CCE'),
+                                    ('5class', '5-class', 'CCE'),
+                                    ('3class', '3-class', 'CCE'),
+                                    ('binary', 'Binary', 'BCE')]:
         r = all_results[name]
         ci = r['bootstrap_ci']
         dim = r['output_dim']
-        print(f"  {label:<20} {dim:>4} {ci['mse']['point']:>8.4f} "
+        print(f"  {label:<25} {dim:>4} {loss_name:<8} {ci['mse']['point']:>8.4f} "
               f"[{ci['mse']['ci_lo']:.3f}, {ci['mse']['ci_hi']:.3f}] "
               f"{ci['spearman']['point']:>10.4f}")
 
-    print(f"\n  Information loss as output dim decreases:")
+    print(f"\n  Information loss as output dim decreases (vs 10-bin focal):")
     vec_mse = all_results['vector_10bin']['bootstrap_ci']['mse']['point']
-    for name, label in [('5class', '5→10'), ('3class', '3→10'), ('binary', '2→10')]:
+    for name, label in [('vector_10bin_cce', '10bin-CCE→10bin-focal'),
+                        ('5class', '5→10'), ('3class', '3→10'), ('binary', '2→10')]:
         cls_mse = all_results[name]['bootstrap_ci']['mse']['point']
         pct = 100 * (cls_mse - vec_mse) / vec_mse
-        print(f"    {label}: +{pct:.1f}% MSE increase")
+        print(f"    {label}: {'+' if pct > 0 else ''}{pct:.1f}% MSE {'increase' if pct > 0 else 'decrease'}")
 
     # Save results (without large prediction arrays for JSON readability)
     save_data = {}
