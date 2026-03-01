@@ -89,8 +89,8 @@ The PLM datasets contain 3095 training and 1326 test samples (minor differences 
 \subsection{Preprocessing}
 \label{sec:preprocessing}
 
-Features are standardized to zero mean and unit variance using statistics computed on training data only.
-Target skewness is evaluated; $\log(1+x)$ transformation is applied when $|\text{skew}| > 1.0$.
+We standardize features to zero mean and unit variance using statistics computed on the training data only.
+We evaluate target skewness and apply a $\log(1+x)$ transformation when $|\text{skew}| > 1.0$.
 For all datasets in this study, skewness was 0.116, so no transformation was applied.
 
 \subsection{Random Forest Models}
@@ -446,7 +446,7 @@ Best NN (256, 256, 128) & \textbf{0.981} & [0.867, 1.105] & \textbf{0.868} & \te
 Relative to a mean-prediction baseline (MSE 4.76), the linear probe captures 98.5\% of the total improvement achieved by the best NN, with the three hidden layers contributing only an additional 1.5\%.
 Measured instead against the best RF (MSE 1.16; Table~\ref{tab:comparison}), the linear probe captures 69\% of the RF-to-NN improvement, with the MLP contributing the remaining 31\%.
 The choice of reference baseline substantially affects this decomposition, but under either framing the embedding itself encodes the majority of task-relevant information; the MLP serves as a modest nonlinear refinement.
-(Note: the NN MSE of 0.981 in this analysis differs from the reported best of 0.932 because Script~18 retrains the same architecture independently; seed-to-seed variability accounts for the difference.)
+(Note: the NN MSE of 0.981 differs from the reported best of 0.932 because this analysis retrains the same architecture independently; seed-to-seed variability accounts for the difference.)
 Nevertheless, the NN consistently outperforms the linear probe (0.981 vs.\ 1.037, 5.4\% improvement), and all four models substantially outperform the RF baseline (MSE 1.16--1.25; Table~\ref{tab:comparison}).
 To test whether the (256, 256, 128) architecture is over-parameterized, we also evaluate smaller MLPs: a (64, 32) network achieves MSE 0.981 (5-seed ensemble)---matching the retrained (256, 256, 128) result---while a (128, 64) network achieves 0.991.
 This suggests that much of the architecture's capacity is redundant given the embedding's richness, though the original (256, 256, 128) ensemble of 0.932 still represents the best point estimate across all configurations.
@@ -634,12 +634,10 @@ Design task Spearman $\rho$ & 0.363--0.390 & Table~\ref{tab:design} \\
 \end{table}
 
 \paragraph{Model--Representation Interaction.}
-The most striking pattern in the scalar results (Table~\ref{tab:comparison}) is the interaction between model type and feature representation: RF is robust but plateaus across all four feature sets, while NN performance varies by 26\%.
-This likely reflects a fundamental difference in how the two models handle high-dimensional inputs: RF's random subspace sampling provides robustness to uninformative dimensions but limits its ability to exploit complex feature interactions.
+The interaction between model type and feature representation (Table~\ref{tab:comparison}) likely reflects a fundamental difference in how RF and NN handle high-dimensional inputs.
+RF's random subspace sampling provides robustness to uninformative dimensions but limits its ability to exploit complex feature interactions, explaining why it plateaus across all four feature sets.
 Neural networks can learn nonlinear combinations of PLM embedding dimensions that capture secretion-relevant information, but require sufficient input richness to outperform simpler methods.
-The poor performance of NN on physicochemical features (MSE 1.328) likely reflects a dimensionality mismatch.
-With only 156 input dimensions and $\sim$3000 training samples, the neural network may lack sufficient signal to learn useful representations beyond what the RF already captures through axis-aligned splits.
-The higher capacity of the NN becomes a liability rather than an asset in this low-dimensional regime.
+The poor NN performance on physicochemical features (MSE 1.328) likely reflects a dimensionality mismatch: with only 156 input dimensions and $\sim$3000 training samples, the neural network cannot learn useful representations beyond what RF already captures through axis-aligned splits, and the higher capacity becomes a liability rather than an asset.
 
 \paragraph{PLM Model Size.}
 A related question is whether larger PLMs automatically produce better predictions.
@@ -662,10 +660,9 @@ The 0.953 benchmark was obtained from a single model; our 0.932 result uses a 5-
 Individual seed MSEs for the best configuration range from 0.950 to 1.023 (mean 0.979), so the mean single-seed MSE does not beat 0.953; only one of five seeds individually surpasses it, and the improvement from 0.979 to 0.932 reflects the ensembling benefit.
 
 \paragraph{Cross-Dataset Generalization.}
-While these improvements are substantial within the Grasso dataset, the cross-dataset results reveal a significant limitation.
-The consistently negative Spearman correlations across all four external datasets are worth examining, though not entirely unexpected.
-Signal peptide efficiency depends on the cargo protein, promoter, host organism, and growth conditions, all of which differ fundamentally between datasets.
-The correlations are not merely absent ($\rho \approx 0$) but actively negative, suggesting that the sequence features associated with high secretion in the Grasso system are associated with low performance in other contexts, possibly because the model has learned host- or cargo-specific signal patterns that are maladaptive elsewhere.
+The cross-dataset results carry a stark practical implication: naively applying a signal peptide model trained in one system to another is not merely unhelpful but actively misleading.
+All four external datasets show negative Spearman correlations, meaning that sequences the model predicts as high-performing tend to perform worst in the new context.
+This likely reflects host- or cargo-specific signal patterns learned from the Grasso data that are maladaptive elsewhere, since signal peptide efficiency depends on the cargo protein, promoter, host organism, and growth conditions.
 A signal peptide optimized for $\beta$-glucuronidase secretion in \textit{B.\ subtilis} may be poorly suited for xylanase production in the same organism, let alone for enzyme secretion in \textit{E.\ coli} or \textit{S.\ cerevisiae}.
 The Zhang cross-promoter analysis provides complementary evidence: the same 114 signal peptides correlate at $r = 0.977$ across two promoters, confirming that signal peptide rankings are partially conserved within a system but not across systems.
 In practice, this means models for signal peptide optimization need to be trained on task-specific data rather than transferred across experimental contexts.
