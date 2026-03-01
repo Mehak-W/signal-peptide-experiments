@@ -29,13 +29,15 @@
 % ══════════════════════════════════════════════════════════════════════════
 \begin{abstract}
 Signal peptides direct protein secretion in bacteria and are critical targets for optimizing recombinant protein production.
-We present a systematic comparison of machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest (RF) and neural network (NN) regressors across four feature representations: 156 physicochemical descriptors and three protein language model (PLM) embedding sets (ESM2-650M, ESM2-3B, Ginkgo-AA0).
-A vector regression approach, predicting 10-bin probability distributions via a softmax output with focal loss \citep{lin2017focal}, achieves a test MSE of 1.001 ($N_{\text{test}} = 1273$) with Ginkgo-AA0 embeddings using an 80/20 validation split.
-Further optimization using full-data training with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), improving 23.6\% over the physicochemical baseline of 1.22 \citep{grasso2023} and reaching below a prior single-model benchmark of 0.953 (J.\ Schrier, personal communication), though the difference is not statistically significant at the 95\% level.
-However, a linear probe (single Dense layer) on the same embeddings achieves MSE 1.037, capturing the majority of the predictive improvement and indicating that the embedding itself encodes most task-relevant information.
-Leave-one-gene-out cross-validation reveals a 2.27$\times$ increase in MSE (2.19 vs.\ 0.96 for a comparable single-seed model), demonstrating that standard evaluations with overlapping genes substantially overestimate generalization to unseen genes.
-Cross-dataset evaluation on four external signal peptide datasets reveals significant negative zero-shot Spearman correlations; fine-tuning the output head on target-domain data yields a positive correlation for only one of four datasets (Wu, binary outcome), though no individual fold reaches statistical significance.
-Applied to 4832 designed signal peptide variants, the models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\%, demonstrating practical utility for guiding experimental prioritization.
+We compare machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest and neural network regressors across physicochemical descriptors and three protein language model (PLM) embedding sets.
+A vector regression approach---predicting 10-bin probability distributions rather than scalar values---yields the best performance: a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), improving 23.6\% over the physicochemical baseline of 1.22 \citep{grasso2023}, though the difference from a prior benchmark of 0.953 is not statistically significant.
+
+Two findings temper this result.
+A linear probe on the same embeddings achieves MSE 1.037, indicating that the PLM embedding encodes most task-relevant information and the neural network head contributes only a modest refinement.
+Leave-one-gene-out cross-validation reveals a 2.27$\times$ increase in MSE (2.19 vs.\ 0.96), demonstrating that standard evaluations with overlapping genes substantially overestimate generalization.
+
+Cross-dataset evaluation on four external datasets shows that predictions do not transfer across organisms; fine-tuning yields a positive correlation for only one of four datasets.
+Applied to 4832 designed variants, the models achieve Spearman $\rho = 0.36$--0.39 and classification accuracy of 72--74\%, demonstrating practical utility for guiding experimental prioritization.
 \end{abstract}
 
 % ══════════════════════════════════════════════════════════════════════════
@@ -56,13 +58,7 @@ However, effectively leveraging these high-dimensional embeddings (1280--2560 di
 Existing tools such as SignalP~6.0 \citep{teufel2022} and DeepSig \citep{savojardo2018} predict signal peptide presence and cleavage sites with high accuracy, but they do not predict quantitative secretion efficiency, which is the focus of this work.
 
 In this work, we systematically evaluate signal peptide efficiency prediction across multiple feature representations and model types.
-We identified several methodological considerations in applying machine learning to this problem:
-\begin{enumerate}
-    \item Ensuring reproducibility through direct loading from source data files
-    \item Performing hyperparameter search independently for each feature type
-    \item Using regression (not classification) for continuous efficiency prediction
-    \item Scaling neural network architectures to input dimensionality
-\end{enumerate}
+We perform hyperparameter search independently for each feature type, use regression rather than classification for continuous efficiency prediction, and scale neural network architectures to the input dimensionality of each embedding.
 
 Our analysis reveals a clear interaction between model type and feature representation: neural networks substantially outperform random forests when given PLM embeddings, but underperform on physicochemical features.
 Beyond this core comparison, we extend the analysis in four directions: (i) a vector regression approach that predicts bin probability distributions instead of scalar WA, yielding further performance gains; (ii) full-data architecture and regularization optimization that pushes vector regression below the prior state of the art; (iii) cross-dataset generalization evaluation against four external datasets; and (iv) a design task evaluating model utility for ranking novel signal peptide variants.
@@ -144,12 +140,12 @@ Some sequences exhibit bimodal bin distributions where the WA falls between two 
     variant MKLAKRVSALTPSTTLAITQKAKEL (WA = 5.63). The weighted average
     (dashed line) falls in the valley between peaks at bins 3 and 7,
     illustrating that the scalar WA can be a poor summary of the
-    underlying distribution.}
+    underlying distribution and motivating the vector regression approach.}
     \label{fig:bimodal}
 \end{figure}
 
 The vector regression architecture uses two hidden layers of 256 units each with LeakyReLU activation and 20\% dropout, followed by a 10-unit output layer with softmax activation to produce a valid probability distribution.
-The architecture follows the design of a Wolfram Language implementation (J.\ Schrier, personal communication), using LeakyReLU rather than ReLU and omitting batch normalization.
+The architecture follows an unpublished Wolfram Language prototype by Dr.\ Schrier, using LeakyReLU rather than ReLU and omitting batch normalization.
 Training uses the Adam optimizer with learning rate $5 \times 10^{-4}$, batch size 32, and up to 200 epochs with early stopping (patience 15) and learning rate reduction on plateau.
 Two loss functions are compared: categorical cross-entropy and focal loss \citep{lin2017focal}, defined as $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$ with $\alpha = 0.25$ and $\gamma = 2.0$, where $p_t$ is the model's predicted probability for bin $t$.
 Because the target distributions are continuous (not one-hot), the loss is applied element-wise across all 10 bins, treating the experimental bin fractions as soft labels.
@@ -163,7 +159,7 @@ The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1
 
 \subsection{Architecture and Regularization Optimization}
 \label{sec:arch_opt_methods}
-Because the base vector model (MSE 1.001) still falls short of the 0.953 benchmark obtained by Schrier using a similar architecture, we explore whether removing the validation split and compensating with explicit regularization can close this gap.
+Because the base vector model (MSE 1.001) still falls short of the 0.953 benchmark obtained with a similar architecture in Wolfram Language, we explore whether removing the validation split and compensating with explicit regularization can close this gap.
 Training on all 3068 samples with a fixed epoch budget of 300 and no early stopping removes the regularization signal provided by validation-based stopping, so we rely instead on dropout tuning and architectural depth to control overfitting.
 We explore:
 \begin{itemize}
@@ -638,11 +634,8 @@ Design task Spearman $\rho$ & 0.363--0.390 & Table~\ref{tab:design} \\
 \end{table}
 
 \paragraph{Model--Representation Interaction.}
-The central finding of the scalar regression analysis is a pronounced interaction between model architecture and feature representation.
-Random forests show minimal sensitivity to input type; all four feature sets produce similar MSE values (1.16--1.25).
-Neural networks, in contrast, exhibit a 26\% performance gap between the best (Ginkgo-AA0, MSE 1.050) and worst (PhysChem, MSE 1.328) feature types.
-
-This pattern suggests that RF's built-in feature selection (via random subspace sampling) provides robustness to uninformative dimensions but limits the model's ability to exploit complex feature interactions.
+The most striking pattern in the scalar results (Table~\ref{tab:comparison}) is the interaction between model type and feature representation: RF is robust but plateaus across all four feature sets, while NN performance varies by 26\%.
+This likely reflects a fundamental difference in how the two models handle high-dimensional inputs: RF's random subspace sampling provides robustness to uninformative dimensions but limits its ability to exploit complex feature interactions.
 Neural networks can learn nonlinear combinations of PLM embedding dimensions that capture secretion-relevant information, but require sufficient input richness to outperform simpler methods.
 The poor performance of NN on physicochemical features (MSE 1.328) likely reflects a dimensionality mismatch.
 With only 156 input dimensions and $\sim$3000 training samples, the neural network may lack sufficient signal to learn useful representations beyond what the RF already captures through axis-aligned splits.
@@ -662,7 +655,7 @@ Predicting bin probability distributions instead of scalar WA values yields a 4.
 This gain likely arises from the richer supervision signal: each training example provides 10 target values instead of one, and the softmax output naturally enforces a valid probability distribution.
 Focal loss provides a marginal improvement over cross-entropy (+2.3\% MSE; Section~\ref{sec:output_formulation}), and a controlled comparison across five output formulations confirms that the gain comes primarily from predicting 10-bin distributions rather than from the loss function: the 10-bin CCE model (MSE 0.994) outperforms all classification baselines (MSE 1.13--1.29).
 However, the vector and scalar NNs also differ in activation function (LeakyReLU vs.\ ReLU) and the absence of batch normalization (Appendix~\ref{app:relu_squared}), so the improvement cannot be attributed solely to the distributional output without further ablation.
-With an 80/20 validation split, the best vector model achieves MSE 1.001, above the 0.953 obtained using a near-identical architecture (same embedding, hidden sizes, dropout, and focal loss; Schrier uses parametric ReLU vs.\ our LeakyReLU) implemented in Wolfram Language (J.\ Schrier, personal communication).
+With an 80/20 validation split, the best vector model achieves MSE 1.001, above the 0.953 obtained with a near-identical Wolfram Language implementation (same embedding, hidden sizes, dropout, and focal loss; the prior model uses parametric ReLU vs.\ our LeakyReLU).
 Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) yields a 5-seed ensemble MSE of 0.932 (Section~\ref{sec:fulldata_results}), 2.2\% below that benchmark.
 The key improvements are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
 The 0.953 benchmark was obtained from a single model; our 0.932 result uses a 5-seed ensemble, which inherently reduces prediction variance.
@@ -695,22 +688,20 @@ This contrasts with the larger PLM advantage observed in the scalar regression t
 The moderate but significant correlations suggest that these models can serve as a practical filter for prioritizing candidates in experimental screening campaigns.
 
 \paragraph{Limitations.}
-Several caveats apply to these findings.
+Several methodological caveats apply.
 The RF and NN hyperparameter searches used different validation strategies (5-fold CV vs.\ single train/val split), which may introduce some asymmetry in the comparison.
-The dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme.
 While the full-data ensemble MSE (0.932) falls below the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping.
 The final dropout of 0.35 was selected based on test-set MSE, constituting a form of test-set model selection.
 Appendix~\ref{app:dropout_val} shows that all dropout values $\geq 0.20$ produce statistically indistinguishable validation MSE, so the test-optimal choice is not contradicted by validation data, but neither is it uniquely supported.
 Validation MSE improves from 1.375 at dropout 0.15 to 1.333--1.347 for all dropout rates $\geq 0.20$, with no statistically significant differences among them (all within seed-to-seed variability of $\pm$0.07--0.09); the test-optimal dropout (0.35) produces a validation MSE of 1.347 $\pm$ 0.072, indistinguishable from the validation-optimal (0.20, MSE 1.333 $\pm$ 0.084).
 The differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
 The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), all four NN correlations and two of the four RF correlations no longer reach significance. Only the Wu and Xue RF correlations survive correction.
+
+In terms of scope, the dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme, and Ginkgo-AA0 embeddings---which yielded the best results---were only available for the Grasso dataset; cross-dataset and fine-tuning evaluations use ESM2-650M embeddings, so the actual transferability of Ginkgo-AA0 representations remains untested.
 The vector regression architecture uses LeakyReLU activation, omits batch normalization, and does not apply L2 kernel regularization,
 while the scalar NN uses ReLU with batch normalization and L2 regularization; a systematic ablation of these
 architectural differences was not performed, so the vector regression improvement cannot
 be attributed solely to the distributional output.
-Ginkgo-AA0 embeddings, which yielded the best results across all tasks, were only
-available for the Grasso dataset; cross-dataset and fine-tuning evaluations use ESM2-650M
-embeddings, so the actual transferability of Ginkgo-AA0 representations remains untested.
 The original Grasso train/test partition contains overlapping genes (132 of 134 genes appear in both sets), meaning the model may partly learn gene-specific patterns rather than generalizable signal peptide features.
 A leave-one-gene-out cross-validation (Section~\ref{sec:gene_stratified}) addresses this concern.
 
@@ -921,7 +912,7 @@ Figure~\ref{fig:forest_plot} presents these intervals as a forest plot, showing 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/bootstrap_forest_plot.png}
-    \caption{Forest plot of test MSE with 95\% bootstrap confidence intervals for all 16 models. Blue markers indicate scalar models (RF and NN); orange markers indicate vector regression ensembles. Dashed red line: physicochemical baseline (MSE 1.22); dotted green line: Schrier benchmark (MSE 0.95).}
+    \caption{Forest plot of test MSE with 95\% bootstrap confidence intervals for all 16 models. Blue markers indicate scalar models (RF and NN); orange markers indicate vector regression ensembles. Dashed red line: physicochemical baseline (MSE 1.22); dotted green line: Dr.\ Schrier benchmark (MSE 0.95).}
     \label{fig:forest_plot}
 \end{figure}
 
@@ -958,8 +949,8 @@ Figure~\ref{fig:relu_sq} shows the comparison.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.95\textwidth]{../figures/relu_squared_comparison.png}
-    \caption{ReLU-squared vs LeakyReLU activation comparison. Despite producing sparser hidden representations (Hoyer sparsity 0.67--0.92 vs 0.27--0.32), ReLU-squared degrades prediction accuracy from MSE 0.961 to 5.11.}
+    \includegraphics[width=0.5\textwidth]{../figures/relu_squared_comparison.png}
+    \caption{Hoyer sparsity per hidden layer for ReLU-squared vs LeakyReLU. ReLU-squared produces 2--3$\times$ sparser representations but degrades prediction accuracy from MSE 0.961 to 5.11.}
     \label{fig:relu_sq}
 \end{figure}
 
