@@ -57,6 +57,13 @@ Models like ESM-2 \citep{lin2023} learn rich representations of protein sequence
 However, effectively leveraging these high-dimensional embeddings (1280--2560 dimensions) requires appropriate model architectures and hyperparameter tuning.
 Existing tools such as SignalP~6.0 \citep{teufel2022} and DeepSig \citep{savojardo2018} predict signal peptide presence and cleavage sites with high accuracy, but they do not predict quantitative secretion efficiency, which is the focus of this work.
 
+PLM embeddings have shown broad utility for protein property prediction beyond signal peptides.
+The TAPE benchmark \citep{rao2019} demonstrated that pretrained representations transfer effectively to tasks ranging from stability prediction to remote homology detection, establishing PLMs as general-purpose protein feature extractors.
+ProtTrans \citep{elnaggar2022} extended this to multiple transformer architectures, showing that models pretrained on billions of protein sequences capture structural and functional signals without explicit evolutionary information.
+More directly relevant, \citet{meier2021} showed that ESM-family models can predict mutational effects on protein function in a zero-shot setting, suggesting that PLM representations encode fitness-relevant information even without task-specific fine-tuning.
+However, most of these studies focus on classification tasks (functional annotation, stability, localization) or per-residue prediction (secondary structure, contact maps).
+Quantitative regression on continuous functional readouts---particularly for secretion efficiency, where the output is a cell-sorting distribution rather than a single scalar---remains less explored.
+
 In this work, we systematically evaluate signal peptide efficiency prediction across multiple feature representations and model types.
 We perform hyperparameter search independently for each feature type, use regression rather than classification for continuous efficiency prediction, and scale neural network architectures to the input dimensionality of each embedding.
 
@@ -345,7 +352,7 @@ Mixed & 3-arch $\times$ 5-seed (15 models) & --- & 0.967 & --- & --- \\
 Dropout tuning produces the largest gains: increasing dropout from 0.20 to 0.35 on the (256, 256, 128) architecture reduces ensemble MSE from 0.993 to 0.932, indicating that the base configuration was under-regularized.
 The best result, MSE 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), represents a 23.6\% improvement over the published baseline of 1.22 \citep{grasso2023}.
 Bootstrap 95\% confidence intervals are [0.823, 1.054] for MSE and [0.857, 0.887] for Spearman $\rho$ (Appendix~\ref{app:bootstrap}).
-An unpublished Wolfram Language implementation by Dr.\ Schrier achieves MSE 0.953 with a similar single-model architecture; our ensemble result falls below this value, but the bootstrap CI contains it, so the difference is not statistically significant.
+A prior Wolfram Language implementation using a similar single-model architecture achieves MSE 0.953; our ensemble result falls below this value, but the bootstrap CI contains it, so the difference is not statistically significant.
 We note that the dropout of 0.35 was selected based on test-set MSE.
 The validation-optimal dropout (0.20) produces test MSE 0.993; all dropout values in 0.20--0.35 are statistically indistinguishable on validation data (Appendix~\ref{app:dropout_val}).
 We report 0.932 as the best observed result but emphasize the bootstrap CI [0.823, 1.054] and single-seed mean (0.979) as more reliable performance indicators.
@@ -357,7 +364,7 @@ Figure~\ref{fig:ensemble_opt} shows the full optimization landscape.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/vector_ensemble_optimization.png}
-    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates an unpublished single-model result of 0.953 for comparison; the dashed grey line shows the initial architecture search best (0.973).}
+    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates a prior single-model result of 0.953; the dashed grey line shows the initial architecture search best (0.973).}
     \label{fig:ensemble_opt}
 \end{figure}
 
@@ -664,7 +671,7 @@ However, the vector and scalar NNs also differ in activation function (LeakyReLU
 With an 80/20 validation split, the best vector model achieves MSE 1.001 --- already an 18\% improvement over the published baseline of 1.22.
 Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) pushes the 5-seed ensemble to MSE 0.932 (Section~\ref{sec:fulldata_results}), a total improvement of 23.6\%.
 The key ingredients are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
-Individual seed MSEs range from 0.950 to 1.023 (mean 0.979), so the improvement from 0.979 to 0.932 reflects the ensembling benefit; an unpublished single-model result of 0.953 falls within this seed range, consistent with expected model-to-model variability.
+Individual seed MSEs range from 0.950 to 1.023 (mean 0.979), so the improvement from 0.979 to 0.932 reflects the ensembling benefit; a prior single-model result of 0.953 falls within this seed range, consistent with expected model-to-model variability.
 
 \paragraph{Cross-Dataset Generalization.}
 The cross-dataset results carry a stark practical implication: naively applying a signal peptide model trained in one system to another is not merely unhelpful but actively misleading.
@@ -918,7 +925,7 @@ Figure~\ref{fig:forest_plot} presents these intervals as a forest plot, showing 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/bootstrap_forest_plot.png}
-    \caption{Forest plot of test MSE with 95\% bootstrap confidence intervals for all 16 models. Blue markers indicate scalar models (RF and NN); orange markers indicate vector regression ensembles. Dashed red line: physicochemical baseline (MSE 1.22); dotted green line: Dr.\ Schrier benchmark (MSE 0.95).}
+    \caption{Forest plot of test MSE with 95\% bootstrap confidence intervals for all 16 models. Blue markers indicate scalar models (RF and NN); orange markers indicate vector regression ensembles. Dashed red line: physicochemical baseline (MSE 1.22); dotted green line: prior single-model result (MSE 0.95).}
     \label{fig:forest_plot}
 \end{figure}
 
