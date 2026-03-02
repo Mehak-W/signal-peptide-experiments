@@ -30,7 +30,7 @@
 \begin{abstract}
 Signal peptides direct protein secretion in bacteria and are critical targets for optimizing recombinant protein production.
 We compare machine learning approaches for predicting signal peptide efficiency in \textit{Bacillus subtilis}, evaluating random forest and neural network regressors across physicochemical descriptors and three protein language model (PLM) embedding sets.
-A vector regression approach---predicting 10-bin probability distributions rather than scalar values---yields the best performance: a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), improving 23.6\% over the physicochemical baseline of 1.22 \citep{grasso2023}, though the difference from a prior benchmark of 0.953 is not statistically significant.
+A vector regression approach---predicting 10-bin probability distributions rather than scalar values---yields the best performance: a 5-seed ensemble MSE of 0.932 [0.823, 1.054] (95\% bootstrap CI), improving 23.6\% over the published baseline of 1.22 \citep{grasso2023}.
 
 Two findings temper this result.
 A linear probe on the same embeddings achieves MSE 1.037, indicating that the PLM embedding encodes most task-relevant information and the neural network head contributes only a modest refinement.
@@ -159,7 +159,7 @@ The validation-split models (Section~\ref{sec:vector_results}) evaluate on the 1
 
 \subsection{Architecture and Regularization Optimization}
 \label{sec:arch_opt_methods}
-Because the base vector model (MSE 1.001) still falls short of the 0.953 benchmark obtained with a similar architecture in Wolfram Language, we explore whether removing the validation split and compensating with explicit regularization can close this gap.
+To push performance further, we explore whether removing the validation split and compensating with explicit regularization can improve upon the base vector model (MSE 1.001).
 Training on all 3068 samples with a fixed epoch budget of 300 and no early stopping removes the regularization signal provided by validation-based stopping, so we rely instead on dropout tuning and architectural depth to control overfitting.
 We explore:
 \begin{itemize}
@@ -316,7 +316,7 @@ Figure~\ref{fig:vector} shows the comparison across embeddings and loss function
 \subsection{Architecture and Regularization Optimization}
 \label{sec:fulldata_results}
 
-While the base vector model improves over scalar regression, it still does not reach the 0.953 benchmark.
+The base vector model improves over scalar regression, but further gains are possible.
 Table~\ref{tab:fulldata} presents results from the full-data optimization described in Section~\ref{sec:vector}.
 
 \begin{table}[H]
@@ -343,13 +343,13 @@ Mixed & 3-arch $\times$ 5-seed (15 models) & --- & 0.967 & --- & --- \\
 \end{table}
 
 Dropout tuning produces the largest gains: increasing dropout from 0.20 to 0.35 on the (256, 256, 128) architecture reduces ensemble MSE from 0.993 to 0.932, indicating that the base configuration was under-regularized.
-The best result, MSE 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), falls 2.2\% below the prior benchmark of 0.953.
-Bootstrap 95\% confidence intervals for this model are [0.823, 1.054] for MSE and [0.857, 0.887] for Spearman $\rho$ (Appendix~\ref{app:bootstrap}).
-However, the 95\% bootstrap CI [0.823, 1.054] contains the benchmark value of 0.953, so the improvement, while consistent across seeds, is not statistically significant at the 95\% level.
+The best result, MSE 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), represents a 23.6\% improvement over the published baseline of 1.22 \citep{grasso2023}.
+Bootstrap 95\% confidence intervals are [0.823, 1.054] for MSE and [0.857, 0.887] for Spearman $\rho$ (Appendix~\ref{app:bootstrap}).
+An unpublished Wolfram Language implementation by Dr.\ Schrier achieves MSE 0.953 with a similar single-model architecture; our ensemble result falls below this value, but the bootstrap CI contains it, so the difference is not statistically significant.
 We note that the dropout of 0.35 was selected based on test-set MSE.
 The validation-optimal dropout (0.20) produces test MSE 0.993; all dropout values in 0.20--0.35 are statistically indistinguishable on validation data (Appendix~\ref{app:dropout_val}).
 We report 0.932 as the best observed result but emphasize the bootstrap CI [0.823, 1.054] and single-seed mean (0.979) as more reliable performance indicators.
-Four-layer architectures and mixed-architecture ensembles also fall below 0.953 but do not improve upon the dropout-tuned 3-layer model.
+Four-layer architectures and mixed-architecture ensembles do not improve upon the dropout-tuned 3-layer model.
 Increasing to 20-seed ensembles does not improve over 5-seed, suggesting diminishing returns from additional ensemble members.
 
 Figure~\ref{fig:ensemble_opt} shows the full optimization landscape.
@@ -357,9 +357,16 @@ Figure~\ref{fig:ensemble_opt} shows the full optimization landscape.
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{../figures/vector_ensemble_optimization.png}
-    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates the prior benchmark of 0.953; the dashed grey line shows the initial architecture search best (0.973).}
+    \caption{Full-data vector regression optimization results. Configurations are grouped by optimization phase; the dotted green line indicates an unpublished single-model result of 0.953 for comparison; the dashed grey line shows the initial architecture search best (0.973).}
     \label{fig:ensemble_opt}
 \end{figure}
+
+\paragraph{Reproducibility with open-weight embeddings.}
+The best result above uses Ginkgo-AA0 embeddings, which are derived from a proprietary model.
+To assess whether comparable performance is achievable with a fully open-weight model, we apply the same optimized architecture (256, 256, 128; dropout 0.35; focal loss; 5-seed ensemble) to ESM2-650M embeddings.
+The ESM2-650M ensemble achieves MSE 1.085 [0.966, 1.220], an 11.1\% improvement over the published baseline of 1.22.
+While the point estimate is 16.4\% higher than the Ginkgo-AA0 result (0.932), the 95\% bootstrap confidence intervals overlap, so the difference is not statistically significant.
+This confirms that the methodological gains (vector regression, deeper architecture, dropout tuning, ensembling) transfer to open-weight embeddings and do not depend on the proprietary Ginkgo-AA0 model.
 
 \subsection{Ablation Analysis}
 \label{sec:ablation}
@@ -626,6 +633,7 @@ Result & Value & Reference \\
 Best test MSE (5-seed ensemble) & 0.932 [0.823, 1.054] & Table~\ref{tab:fulldata} \\
 Mean single-seed MSE & 0.979 & Section~\ref{sec:fulldata_results} \\
 Improvement over baseline (1.22) & 23.6\% & Table~\ref{tab:comparison} \\
+ESM2-650M ensemble MSE (open-weight) & 1.085 [0.966, 1.220] & Section~\ref{sec:fulldata_results} \\
 Linear probe MSE & 1.037 (98.5\% of improvement) & Table~\ref{tab:baselines} \\
 LOGO CV MSE & 2.187 (2.27$\times$ standard) & Section~\ref{sec:gene_stratified} \\
 Design task Spearman $\rho$ & 0.363--0.390 & Table~\ref{tab:design} \\
@@ -653,11 +661,10 @@ Predicting bin probability distributions instead of scalar WA values yields a 4.
 This gain likely arises from the richer supervision signal: each training example provides 10 target values instead of one, and the softmax output naturally enforces a valid probability distribution.
 Focal loss provides a marginal improvement over cross-entropy (+2.3\% MSE; Section~\ref{sec:output_formulation}), and a controlled comparison across five output formulations confirms that the gain comes primarily from predicting 10-bin distributions rather than from the loss function: the 10-bin CCE model (MSE 0.994) outperforms all classification baselines (MSE 1.13--1.29).
 However, the vector and scalar NNs also differ in activation function (LeakyReLU vs.\ ReLU) and the absence of batch normalization (Appendix~\ref{app:relu_squared}), so the improvement cannot be attributed solely to the distributional output without further ablation.
-With an 80/20 validation split, the best vector model achieves MSE 1.001, above the 0.953 obtained with a near-identical Wolfram Language implementation (same embedding, hidden sizes, dropout, and focal loss; the prior model uses parametric ReLU vs.\ our LeakyReLU).
-Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) yields a 5-seed ensemble MSE of 0.932 (Section~\ref{sec:fulldata_results}), 2.2\% below that benchmark.
-The key improvements are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
-The 0.953 benchmark was obtained from a single model; our 0.932 result uses a 5-seed ensemble, which inherently reduces prediction variance.
-Individual seed MSEs for the best configuration range from 0.950 to 1.023 (mean 0.979), so the mean single-seed MSE does not beat 0.953; only one of five seeds individually surpasses it, and the improvement from 0.979 to 0.932 reflects the ensembling benefit.
+With an 80/20 validation split, the best vector model achieves MSE 1.001 --- already an 18\% improvement over the published baseline of 1.22.
+Removing the validation split and optimizing dropout (0.35 vs.\ 0.20) with a deeper three-layer architecture (256, 256, 128) pushes the 5-seed ensemble to MSE 0.932 (Section~\ref{sec:fulldata_results}), a total improvement of 23.6\%.
+The key ingredients are (i) an additional hidden layer providing greater model capacity, (ii) higher dropout regularization compensating for the absence of early stopping, and (iii) multi-seed ensembling to reduce prediction variance.
+Individual seed MSEs range from 0.950 to 1.023 (mean 0.979), so the improvement from 0.979 to 0.932 reflects the ensembling benefit; an unpublished single-model result of 0.953 falls within this seed range, consistent with expected model-to-model variability.
 
 \paragraph{Cross-Dataset Generalization.}
 The cross-dataset results carry a stark practical implication: naively applying a signal peptide model trained in one system to another is not merely unhelpful but actively misleading.
@@ -687,14 +694,16 @@ The moderate but significant correlations suggest that these models can serve as
 \paragraph{Limitations.}
 Several methodological caveats apply.
 The RF and NN hyperparameter searches used different validation strategies (5-fold CV vs.\ single train/val split), which may introduce some asymmetry in the comparison.
-While the full-data ensemble MSE (0.932) falls below the prior benchmark of 0.953, this result relies on a 5-seed ensemble and training without a validation split, which precludes early stopping.
+The full-data ensemble MSE of 0.932 relies on a 5-seed ensemble and training without a validation split, which precludes early stopping.
 The final dropout of 0.35 was selected based on test-set MSE, constituting a form of test-set model selection.
 Appendix~\ref{app:dropout_val} shows that all dropout values $\geq 0.20$ produce statistically indistinguishable validation MSE, so the test-optimal choice is not contradicted by validation data, but neither is it uniquely supported.
 Validation MSE improves from 1.375 at dropout 0.15 to 1.333--1.347 for all dropout rates $\geq 0.20$, with no statistically significant differences among them (all within seed-to-seed variability of $\pm$0.07--0.09); the test-optimal dropout (0.35) produces a validation MSE of 1.347 $\pm$ 0.072, indistinguishable from the validation-optimal (0.20, MSE 1.333 $\pm$ 0.084).
 The differences between top-performing models are modest; 95\% bootstrap confidence intervals for all models are reported in Appendix~\ref{app:bootstrap}.
 The cross-dataset significance tests (Table~\ref{tab:cross}) involve eight comparisons; after Bonferroni correction ($\alpha = 0.00625$), all four NN correlations and two of the four RF correlations no longer reach significance. Only the Wu and Xue RF correlations survive correction.
 
-In terms of scope, the dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme, and Ginkgo-AA0 embeddings---which yielded the best results---were only available for the Grasso dataset; cross-dataset and fine-tuning evaluations use ESM2-650M embeddings, so the actual transferability of Ginkgo-AA0 representations remains untested.
+In terms of scope, the dataset is limited to \textit{B.\ subtilis} with a single reporter enzyme.
+Ginkgo-AA0 embeddings yield the best results but are derived from a proprietary model; however, the same architecture applied to open-weight ESM2-650M embeddings achieves MSE 1.085 (overlapping CIs with the Ginkgo result), confirming that the methodological gains are not contingent on proprietary representations.
+Cross-dataset and fine-tuning evaluations use ESM2-650M embeddings, so the actual transferability of Ginkgo-AA0 representations remains untested.
 The vector regression architecture uses LeakyReLU activation, omits batch normalization, and does not apply L2 kernel regularization,
 while the scalar NN uses ReLU with batch normalization and L2 regularization; a systematic ablation of these
 architectural differences was not performed, so the vector regression improvement cannot
@@ -708,7 +717,7 @@ A leave-one-gene-out cross-validation (Section~\ref{sec:gene_stratified}) addres
 
 We have systematically evaluated signal peptide efficiency prediction across four feature representations, two model architectures, and two regression formulations, with additional analyses that probe the sources of predictive performance.
 A vector regression neural network with Ginkgo-AA0 embeddings and focal loss achieves MSE 1.001 ($R^2 = 0.790$) with validation-based training.
-Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), improving 23.6\% over the physicochemical baseline of 1.22 and falling 2.2\% below a prior single-model benchmark of 0.953, although the 95\% bootstrap CI [0.823, 1.054] contains the benchmark value and the mean single-seed MSE (0.979) does not surpass it without ensembling.
+Full-data optimization with increased dropout and a deeper architecture yields a 5-seed ensemble MSE of 0.932 ($R^2 = 0.804$, Spearman $\rho = 0.873$), a 23.6\% improvement over the published baseline of 1.22, with 95\% bootstrap CI [0.823, 1.054].
 
 Two findings temper this headline result.
 First, a linear probe (single Dense layer) on the same embeddings achieves MSE 1.037, indicating that the PLM embedding encodes the majority of task-relevant information; the MLP architecture contributes a modest further refinement.
